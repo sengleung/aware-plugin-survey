@@ -8,7 +8,7 @@ android {
     buildToolsVersion "25.0.2"
 
     defaultConfig {
-        applicationId "com.aware.plugin.template" //EDIT ME
+        applicationId "com.aware.plugin.survey" //EDIT ME
         minSdkVersion 10
         targetSdkVersion 25
         versionCode version_code
