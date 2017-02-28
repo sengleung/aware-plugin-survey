@@ -1,23 +1,12 @@
-AWARE Plugin: YOUR PLUGIN
-==========================
+AWARE Survey Plugin
+===================
 
-This plugin measures ...
+A time and application-usage triggered mobile research survey plugin for the AWARE Framework.
 
-# Settings
-Parameters adjustable on the dashboard and client:
-- **status_plugin_template**: (boolean) activate/deactivate plugin
+# Deployment
 
-# Broadcasts
-**ACTION_AWARE_PLUGIN_TEMPLATE**
-Broadcast ..., with the following extras:
-- **value_1**: (double) amount of time turned off (milliseconds)
+## Installation
 
-# Providers
-##  Template Data
-> content://survey.provider.xxx/plugin_template
+## Software Dependencies
 
-Field | Type | Description
------ | ---- | -----------
-_id | INTEGER | primary key auto-incremented
-timestamp | REAL | unix timestamp in milliseconds of sample
-device_id | TEXT | AWARE device ID
+## Walkthrough
