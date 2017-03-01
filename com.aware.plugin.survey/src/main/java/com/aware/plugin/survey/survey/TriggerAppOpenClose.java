@@ -1,5 +1,8 @@
 package com.aware.plugin.survey.survey;
 
+import android.content.Intent;
+
+import com.aware.ESM;
 import com.aware.plugin.survey.Plugin;
 
 import java.util.List;
@@ -28,6 +31,11 @@ public class TriggerAppOpenClose extends Trigger {
     }
 
     public void setESM() {
+
+//        Intent esm = new Intent(ESM.ACTION_AWARE_QUEUE_ESM);
+//        esm.putExtra(ESM.EXTRA_ESM, esm);
+
+
 //        try {
 //            for (String t : times) {
 //                String[] time = t.split(":");

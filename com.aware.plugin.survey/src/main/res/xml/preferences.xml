@@ -4,7 +4,7 @@
     android:title="@string/app_name">
 
     <CheckBoxPreference
-        android:key="status_plugin_template"
+        android:key="STATUS_SURVEY_PLUGIN"
         android:defaultValue="false"
         android:persistent="true"
         android:summary="Activate/deactivate plugin" />

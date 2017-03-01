@@ -15,23 +15,39 @@ import android.util.Log;
 import com.aware.Applications;
 import com.aware.Aware;
 import com.aware.Aware_Preferences;
+import com.aware.ESM;
 import com.aware.plugin.survey.survey.ConfigFile;
 import com.aware.plugin.survey.survey.Trigger;
+import com.aware.plugin.survey.survey.TriggerAppOpenClose;
 import com.aware.plugin.survey.survey.TriggerTime;
+import com.aware.providers.Scheduler_Provider;
+import com.aware.ui.ESM_Queue;
 import com.aware.ui.PermissionsHandler;
 import com.aware.utils.Aware_Plugin;
+import com.aware.utils.Scheduler;
 
+import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 
+/**
+ * Main plugin functionalities.
+ *
+ * @author  Seng Leung
+ * @version 1.0
+ */
 public class Plugin extends Aware_Plugin {
 
-    private static boolean SURVEY_DELIVERED;
+    private boolean appTriggered;
+    private static List<Trigger> triggerList;
+    private static Queue<String> prevApps;
+    private static final int PREVIOUS_APP_SIZE = 4;
 
-    private static String s;
     @Override
     public void onCreate() {
         super.onCreate();
-        SURVEY_DELIVERED = false;
+        prevApps = new LinkedList<>();
 
         TAG = "AWARE::"+ getResources().getString(R.string.app_name);
 
@@ -47,6 +63,7 @@ public class Plugin extends Aware_Plugin {
             }
         };
 
+
         //Add permissions you need (Android M+).
         //By default, AWARE asks access to the #Manifest.permission.WRITE_EXTERNAL_STORAGE
 
@@ -57,25 +74,35 @@ public class Plugin extends Aware_Plugin {
         TABLES_FIELDS = Provider.TABLES_FIELDS;
         CONTEXT_URIS = new Uri[]{ Provider.TableOne_Data.CONTENT_URI }; //this syncs dummy TableOne_Data to server
 
+        System.out.println("Initialising triggers...");
 
-        IntentFilter contextFilter = new IntentFilter();
-        //Check the sensor/plugin documentation for specific context broadcasts.
-        contextFilter.addAction(Applications.ACTION_AWARE_APPLICATIONS_FOREGROUND);
-        registerReceiver(contextReceiver, contextFilter);
-
-        System.out.println("..............................................................");
+        Scheduler.removeSchedule(getApplicationContext(),
+                                 Scheduler_Provider.Scheduler_Data.SCHEDULE_ID,
+                                 getPackageName()
+        );
 
         Aware.setSetting(getApplicationContext(), Aware_Preferences.STATUS_ESM, false);
         ConfigFile cf = new ConfigFile(this);
-        List<Trigger> triggerList = cf.getTriggers();
-        TriggerTime s = (TriggerTime) triggerList.get(0);
-        for (Trigger t : triggerList) {
-            System.out.println(t.esm + " " + t.trigger);
+        triggerList = cf.getTriggers();
+
+        appTriggered = false;
+        for (Trigger trigger : triggerList) {
+            if (trigger instanceof TriggerAppOpenClose) {
+                appTriggered = true;
+            }
+            if (trigger instanceof  TriggerTime) {
+                Aware.setSetting(getApplicationContext(), Aware_Preferences.STATUS_ESM, true);
+                ((TriggerTime) trigger).setESM();
+            }
         }
 
+        if (appTriggered) {
+            IntentFilter contextFilter = new IntentFilter();
+            //Check the sensor/plugin documentation for specific context broadcasts.
+            contextFilter.addAction(Applications.ACTION_AWARE_APPLICATIONS_FOREGROUND);
+            registerReceiver(contextReceiver, contextFilter);
+        }
 
-        Aware.setSetting(getApplicationContext(), Aware_Preferences.STATUS_ESM, true);
-        s.setESM();
 
         //Activate plugin -- do this ALWAYS as the last thing (this will restart your own plugin and apply the settings)
         Aware.startPlugin(this, "com.aware.plugin.survey");
@@ -98,7 +125,7 @@ public class Plugin extends Aware_Plugin {
 //            DEBUG = Aware.getSetting(this, Aware_Preferences.DEBUG_FLAG).equals("true");
 //
 //            //Initialize our plugin's settings
-//            Aware.setSetting(this, Settings.STATUS_PLUGIN_TEMPLATE, true);
+//            Aware.setSetting(this, Settings.STATUS_SURVEY_PLUGIN, true);
 //
 //        } else {
 //            Intent permissions = new Intent(this, PermissionsHandler.class);
@@ -114,7 +141,7 @@ public class Plugin extends Aware_Plugin {
     public void onDestroy() {
         super.onDestroy();
 
-        Aware.setSetting(this, Settings.STATUS_PLUGIN_TEMPLATE, false);
+        Aware.setSetting(this, Settings.STATUS_SURVEY_PLUGIN, false);
 
         //Stop AWARE's instance running inside the plugin package
         Aware.stopAWARE();
@@ -285,7 +312,7 @@ public class Plugin extends Aware_Plugin {
 //        DEBUG = Aware.getSetting(this, Aware_Preferences.DEBUG_FLAG).equals("true");
 //
 //        //Initialize our plugin's settings
-//        Aware.setSetting(this, Settings.STATUS_PLUGIN_TEMPLATE, true);
+//        Aware.setSetting(this, Settings.STATUS_SURVEY_PLUGIN, true);
 //        Aware.setSetting(this, Aware_Preferences.STATUS_ESM, true);
 //        Aware.startESM(this);
 //        try {
@@ -327,80 +354,100 @@ public class Plugin extends Aware_Plugin {
 //        }
 //    }
 
-    private String getApplicationName(String package_name) {
-        PackageManager packageManager = getPackageManager();
-        ApplicationInfo appInfo;
-        try {
-            appInfo = packageManager.getApplicationInfo(package_name, PackageManager.GET_META_DATA);
-        } catch (final PackageManager.NameNotFoundException e) {
-            appInfo = null;
-        }
-        String appName = "";
-        if (appInfo != null && packageManager.getApplicationLabel(appInfo) != null) {
-            appName = (String) packageManager.getApplicationLabel(appInfo);
-        }
-        return appName;
-    }
-
-
     private static ContextReceiver contextReceiver = new ContextReceiver();
     public static class ContextReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
-        //Action for context here.
 
-//            Uri applicationUri = Applications_Provider.Applications_Foreground.CONTENT_URI;
-//            String i = Aware.getSetting(context, Applications.ACTION_AWARE_APPLICATIONS_FOREGROUND);
-//            String j = Aware.getSetting(context, Aware_Preferences.DEVICE_ID);
-//            String k = Aware.getSetting(context, applicationUri.getQueryParameter("application_name"));
-//            String m = Aware.getSetting(context, Applications_Provider.Applications_Foreground.APPLICATION_NAME);
-//            Log.d("CONNECTION", "->" + Aware.getSetting(context, Applications_Provider.Applications_Foreground.TIMESTAMP));
-//            //CONTENT_URI is the sensor's or plugin's table URI
-//
-//            Log.d("REC i:" +i + " j:" + j + " k:"+ k + " m:" + m, Boolean.toString(APPLICATION_OPEN));
-//            Object t = intent.getExtras().get("rowData");
+            // Detect application name.
+            String currentApp = "";
+            Bundle bundle = intent.getExtras();
+            if (bundle != null) {
+                for (String key : bundle.keySet()) {
+                    Object value = bundle.get(key);
+//                        Log.d(TAG, String.format("K: %s V: %s c: (%s)", key,
+//                                value.toString(), value.getClass().getName()));
+//                        System.out.println("Key: "+key+" VAL: "+value.toString()+" "+value.getClass().getName());
+                    if (value instanceof ContentValues) {
+                        ContentValues val = (ContentValues) value;
+//                            System.out.println("VALS: " + val.toString());
+//                            System.out.println("APP: " + val.get("application_name"));
+                        currentApp = (String) val.get("application_name");
+                        long timestamp = System.currentTimeMillis();
 
-            //System.out.println(context.getApplicationInfo().processName + context.);
-            //context.getApplicationInfo().
+                        Log.d(">>>>>>>>>>>>>>>>>>>>>>>", currentApp);
 
-                    Bundle bundle = intent.getExtras();
-                    if (bundle != null) {
-                        for (String key : bundle.keySet()) {
-                            Object value = bundle.get(key);
-                            Log.d(TAG, String.format("K: %s V: %s c: (%s)", key,
-                                    value.toString(), value.getClass().getName()));
-                            System.out.println("Key: "+key+" VAL: "+value.toString()+" "+value.getClass().getName());
-                            if(value instanceof ContentValues) {
-                                ContentValues val = (ContentValues) value;
-                                System.out.println("VALS: " + val.toString());
-                                System.out.println("APP: " + val.get("application_name"));
-                                String currentApp = (String)val.get("application_name");
-                                long timestamp = System.currentTimeMillis();
 
-                                Log.d(">>>>>>>" + currentApp, currentApp);
+                        //                                //Share context to broadcast and send to database
+                        //                                if (Plugin.pluginContext != null)
+                        //                                    Plugin.pluginContext.onContext();
 
-//                                //Share context to broadcast and send to database
-//                                if (Plugin.pluginContext != null)
-//                                    Plugin.pluginContext.onContext();
-
-                            }
-                        }
                     }
-
-
-            deliverSurvey();
-            if (!SURVEY_DELIVERED) {
-                Aware.setSetting(context, Aware_Preferences.STATUS_ESM, true);
-                //ESM.queueESM(context, s);
-                SURVEY_DELIVERED = true;
+                }
             }
 
+            // Detect application opening.
+            for (Trigger trigger : triggerList) {
+                if (trigger instanceof TriggerAppOpenClose) {
 
+                    for (String app : ((TriggerAppOpenClose) trigger).applications) {
+
+                        if ((app.equals(currentApp) && !prevApps.contains(currentApp)) &&
+                           ((TriggerAppOpenClose) trigger).open) {
+                            Aware.setSetting(context, Aware_Preferences.STATUS_ESM, true);
+                            Log.d(">>>>>>>>>>>>>>>>>>>>>>>", "TRIGGERED");
+                            ESM.queueESM(context, trigger.esm);
+
+                        }
+                    }
+                }
+            }
+
+            // Update previous application queue.
+            if (prevApps.size() >= PREVIOUS_APP_SIZE) {
+                prevApps.remove();
+                prevApps.add(currentApp);
+            } else {
+                prevApps.add(currentApp);
+            }
+
+            Log.d(">>>>>>>>>>>>>>>>>>>>>>>", prevApps.toString());
+
+            // Detect application closing.
+            for (Trigger trigger : triggerList) {
+                if (trigger instanceof TriggerAppOpenClose) {
+
+                    for (String app : ((TriggerAppOpenClose) trigger).applications) {
+
+                        if (hasAppClosed(prevApps, app) && ((TriggerAppOpenClose) trigger).close) {
+                            Aware.setSetting(context, Aware_Preferences.STATUS_ESM, true);
+                            Log.d(">>>>>>>>>>>>>>>>>>>>>>>", "TRIGGERED");
+                            ESM.queueESM(context, trigger.esm);
+
+                        }
+                    }
+                }
+            }
         }
     }
 
-    private static void deliverSurvey() {
-
+    /**
+     * Detect application closing.
+     * @param  queue Previous application queue.
+     * @param  app   Application name.
+     * @return has application closed
+     */
+    private static boolean hasAppClosed(Queue<String> queue, String app) {
+        boolean appBefore = false;
+        for (String s : queue) {
+            if (s.equals(app)) {
+                appBefore = true;
+            }
+            if (appBefore && s.equals("Pixel Launcher")) {
+                return true;
+            }
+        }
+        return false;
     }
 
 }
