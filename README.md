@@ -60,6 +60,7 @@ Questionnaire is triggered at specific times.
 	Times=12:01,13:14,14:34,21:32,13:09
 
 * `Times`
+
   The time of the day in which the questionnaire is triggered.   Represented in `HH:MM` format. Multiple times can be set for the same questionnaire.
 
 ### Application Open/Close
@@ -74,12 +75,15 @@ Questionnaire is triggered at application opening and/or closing.
 	Close=false
 
 * `Applications`
+
   A single application name or a list of application names which displays a questionnaire when opening and/or closing.
 
 * `Open`
+
   Display questionnaire when application opens. Only accepts `true` or `false`.
   
 * `Close`
+
   Display questionnaire when application closes. Only accepts `true` or `false`.
 
 ## Questionnaires
