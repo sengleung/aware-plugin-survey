@@ -6,15 +6,34 @@ A time and application-usage triggered mobile research survey plugin for the AWA
 Deployment
 ==========
 
+The following instructions are intended for the end-user/surveyee.
+
 ## Installation
 
+1. Ensure that the [AWARE application](https://play.google.com/store/apps/details?id=com.aware.phone&hl=en) is installed on the device.
+2.  Enable permissions for the application.
+
+		Settings -> Accessibility -> AWARE -> on		
+
+3. Transfer the **com.aware.plugin.survey.apk** file to the device from the directory:
+
+		\apk
+	
+4. Install the **com.aware.plugin.survey.apk** onto the device.
+5. Accept any permissions requests from the plugin.
+
 ## Software Dependencies
+
+* The minimum Android version is 4.4.1+.
+* This plugin must be used with the [AWARE](https://play.google.com/store/apps/details?id=com.aware.phone&hl=en) base application.
 
 ## Walkthrough
 
 
 Configuration
 =============
+
+The following instructions are intended for the developer/surveyor.
 
 ## Triggers
 
