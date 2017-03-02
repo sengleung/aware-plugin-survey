@@ -17,7 +17,7 @@ import java.util.List;
  * @version 1.0
  */
 public class ConfigFile {
-    Plugin plugin;
+    private Plugin plugin;
 
     public ConfigFile(Plugin plugin) {
         this.plugin = plugin;
@@ -27,18 +27,18 @@ public class ConfigFile {
     /**
      * ESM trigger options.
      */
-    public enum TriggerType {
+     private enum TriggerType {
         TIME("time"), APP_OPEN_CLOSE("app-open-close");
 
-        private String brandname;
+        private String name;
 
         TriggerType(String name) {
-            this.brandname = name;
+            this.name = name;
         }
 
         @Override
         public String toString(){
-            return brandname;
+            return name;
         }
     }
 
@@ -107,7 +107,6 @@ public class ConfigFile {
                                 String[] close = line.split("=");
                                 boolean closeBoolean = Boolean.parseBoolean(close[1]);
                                 parameters.add(closeBoolean);
-                                System.out.println(parameters.size());
                                 triggers.add(new TriggerAppOpenClose(plugin,
                                         (String) parameters.get(0),
                                         (String) parameters.get(1),

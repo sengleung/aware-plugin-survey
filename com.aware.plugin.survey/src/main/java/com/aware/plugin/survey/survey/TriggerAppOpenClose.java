@@ -1,8 +1,5 @@
 package com.aware.plugin.survey.survey;
 
-import android.content.Intent;
-
-import com.aware.ESM;
 import com.aware.plugin.survey.Plugin;
 
 import java.util.List;
@@ -18,10 +15,19 @@ public class TriggerAppOpenClose extends Trigger {
     public final boolean open;
     public final boolean close;
 
+    /**
+     * Trigger Application Open/Close constructor.
+     * @param plugin        survey plugin
+     * @param trigger       trigger name
+     * @param esmFile       ESM file
+     * @param applications  list of applications
+     * @param open          trigger when app open
+     * @param close         trigger when app close
+     */
     public TriggerAppOpenClose(Plugin plugin,
-                       String trigger,
-                       String esmFile,
-                       List<String> applications,
+                               String trigger,
+                               String esmFile,
+                               List<String> applications,
                                boolean open,
                                boolean close) {
         super(plugin, trigger, esmFile);
@@ -32,25 +38,6 @@ public class TriggerAppOpenClose extends Trigger {
 
     public void setESM() {
 
-//        Intent esm = new Intent(ESM.ACTION_AWARE_QUEUE_ESM);
-//        esm.putExtra(ESM.EXTRA_ESM, esm);
-
-
-//        try {
-//            for (String t : times) {
-//                String[] time = t.split(":");
-//                Scheduler.Schedule scheduler = new Scheduler.Schedule("ESM_TIME_TRIGGER"); //schedule with morning_question as ID
-//                scheduler.addHour(Integer.parseInt(time[0])); //8 PM (24h format), every day
-//                scheduler.addMinute(Integer.parseInt(time[1]));
-//                scheduler.setInterval(1);
-//                scheduler.setActionType(Scheduler.ACTION_TYPE_BROADCAST); //sending a request to the client via broadcast
-//                scheduler.setActionClass(ESM.ACTION_AWARE_QUEUE_ESM); //with the action of ACTION_AWARE_QUEUE_ESM, i.e., queueing a new ESM
-//                scheduler.addActionExtra(ESM.EXTRA_ESM, esm); //add the questions from the factory
-//                Scheduler.saveSchedule(plugin, scheduler); //save the questionnaire and schedule it
-//                System.out.println("Setting time: " + time[0] + ":" + time[1]);
-//            }
-//        } catch (Exception e) {
-//        }
     }
 
 }

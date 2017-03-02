@@ -39,11 +39,11 @@ The following instructions are intended for the developer/surveyor.
 
 The **esm.ini** file is the configuration file for the **triggers** of *Experience Sampling Method (ESM)* questionnaires.
 
-The **esm.ini** file located in:
+The **esm.ini** file is located in:
 
 	com.aware.plugin.survey\src\main\res\raw\
 
-The file is a plain-text file editable with a basic text editor.
+The file is a plain-text file.
 An example **esm.ini** file is provided below:
 
 	[ESM_1_SPECIFIC_TIMES]
@@ -109,11 +109,11 @@ Questionnaire is triggered at application opening and/or closing.
 
 The **&lt;file_name>.json** file contains a single question or a list of questions in sequence for the *Experience Sampling Method (ESM)* questionnaires. Each file corresponds to the respective trigger options from the **esm.ini** file.
 
-The **&lt;file_name>.json** file located in:
+The **&lt;file_name>.json** file is located in:
 
 	com.aware.plugin.survey\src\main\res\raw\
 
-The file is a plain-text file editable with a basic text editor.
+The file is a plain-text file.
 An example **esm1.ini** file is provided below:
 
 	[
