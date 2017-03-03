@@ -29,7 +29,7 @@ The following instructions are intended for the end-user/surveyee.
 
 ## Demonstration
 
-![](https://github.com/sengleung/aware-plugin-survey/blob/master/assets/aware-plugin-survey-demo.gif)
+<img src="https://github.com/sengleung/aware-plugin-survey/blob/master/assets/aware-plugin-survey-demo.gif" width="270">
 
 Configuration
 =============
