@@ -27,8 +27,9 @@ The following instructions are intended for the end-user/surveyee.
 * The minimum Android version is 4.4.1+.
 * This plugin must be used with the [AWARE](https://play.google.com/store/apps/details?id=com.aware.phone&hl=en) base application.
 
-## Walkthrough
+## Demonstration
 
+![](https://github.com/sengleung/aware-plugin-survey/blob/master/assets/aware-plugin-survey-demo.gif)
 
 Configuration
 =============
