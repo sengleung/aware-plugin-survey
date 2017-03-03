@@ -16,13 +16,16 @@ import com.aware.Aware;
 import com.aware.Aware_Preferences;
 import com.aware.ESM;
 import com.aware.plugin.survey.survey.ConfigFile;
+import com.aware.plugin.survey.survey.TimerInfo;
 import com.aware.plugin.survey.survey.Trigger;
+import com.aware.plugin.survey.survey.TriggerAppDelay;
 import com.aware.plugin.survey.survey.TriggerAppOpenClose;
 import com.aware.plugin.survey.survey.TriggerTime;
 import com.aware.ui.PermissionsHandler;
 import com.aware.utils.Aware_Plugin;
 import com.aware.utils.Scheduler;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
@@ -38,6 +41,7 @@ public class Plugin extends Aware_Plugin {
     private static final int PREVIOUS_APP_SIZE = 4;
     private static List<Trigger> triggerList;
     private static Queue<String> prevApps;
+    private static List<TimerInfo> timerInfos;
 
     /**
      * Initialise survey plugin.
@@ -90,14 +94,22 @@ public class Plugin extends Aware_Plugin {
 
         // Initialise triggers.
         System.out.println("Initialising triggers.");
+        timerInfos = new ArrayList<>();
         boolean appTriggered = false;
+        boolean appDelayTrigger = false;
         for (Trigger trigger : triggerList) {
+            Aware.setSetting(getApplicationContext(), Aware_Preferences.STATUS_ESM, true);
+            if (trigger instanceof  TriggerTime) {
+                //Aware.setSetting(getApplicationContext(), Aware_Preferences.STATUS_ESM, true);
+                ((TriggerTime) trigger).setESM();
+            }
             if (trigger instanceof TriggerAppOpenClose) {
                 appTriggered = true;
             }
-            if (trigger instanceof  TriggerTime) {
-                Aware.setSetting(getApplicationContext(), Aware_Preferences.STATUS_ESM, true);
-                ((TriggerTime) trigger).setESM();
+            if (trigger instanceof TriggerAppDelay) {
+                appTriggered = true;
+                appDelayTrigger = true;
+                timerInfos.add(new TimerInfo((TriggerAppDelay) trigger));
             }
         }
         // If trigger is application triggered, initiate interrupt.
@@ -107,9 +119,40 @@ public class Plugin extends Aware_Plugin {
             registerReceiver(contextReceiver, contextFilter);
         }
 
+        //
+        if (appDelayTrigger) {
+            DelayTimer tx = new DelayTimer();
+            tx.start();
+        }
+
         // Activate plugin -- do this ALWAYS as the last thing
         // (this will restart your own plugin and apply the settings)
         Aware.startPlugin(this, "com.aware.plugin.survey");
+    }
+
+    /**
+     * Delay timer for application delay trigger.
+     */
+    class DelayTimer extends Thread {
+        /**
+         * Initiate timer process.
+         */
+        public void run() {
+            while (true) {
+                try {
+                    Thread.sleep(2000);
+                    for (TimerInfo timerInfo : timerInfos) {
+                        Log.d("APP_OPEN_CLOSE", "activation status:" + Boolean.toString(timerInfo.set));
+                        if (timerInfo.set && System.currentTimeMillis() > timerInfo.activation) {
+                            Log.d("APP_DELAY", "Application duration elapsed. ESM delivered.");
+                            timerInfo.disableTimer();
+                            ESM.queueESM(getApplicationContext(), timerInfo.triggerAppDelay.esm);
+                        }
+                    }
+                } catch (Exception e) {
+                }
+            }
+        }
     }
 
     /**
@@ -158,79 +201,54 @@ public class Plugin extends Aware_Plugin {
 
         /**
          * Interrupt handling for application opening/closing.
-         * @param context
-         * @param intent
+         * @param context Context
+         * @param intent  Intent
          */
         @Override
         public void onReceive(Context context, Intent intent) {
+            String currentApp = getCurrentAppName(intent);
 
-            // Specify application name.
-            String currentApp = "";
-            Bundle bundle = intent.getExtras();
-            if (bundle != null) {
-                for (String key : bundle.keySet()) {
-                    Object value = bundle.get(key);
+            for (Trigger trigger : triggerList) {
+                if (trigger instanceof TriggerAppOpenClose ||
+                        trigger instanceof TriggerAppDelay) {
+                    appTrigger(context, currentApp);
+                }
+            }
+        }
+
+    }
+
+    private static String getCurrentAppName(Intent intent) {
+        // Specify application name.
+        String currentApp = "";
+        Bundle bundle = intent.getExtras();
+        if (bundle != null) {
+            for (String key : bundle.keySet()) {
+                Object value = bundle.get(key);
 //                    Log.d(TAG, String.format("K: %s V: %s c: (%s)", key,
 //                            value.toString(), value.getClass().getName()));
 //                    System.out.println("Key: "+key+" VAL: "+value.toString()+" "+value.getClass().getName());
-                    if (value instanceof ContentValues) {
-                        ContentValues val = (ContentValues) value;
+                if (value instanceof ContentValues) {
+                    ContentValues val = (ContentValues) value;
 //                            System.out.println("VALS: " + val.toString());
 //                            System.out.println("APP: " + val.get("application_name"));
-                        currentApp = (String) val.get("application_name");
-                        long timestamp = System.currentTimeMillis();
+                    currentApp = (String) val.get("application_name");
+                    long timestamp = System.currentTimeMillis();
 
-                        Log.d("APP_OPEN_CLOSE", currentApp);
+                    Log.d("APP_OPEN_CLOSE", currentApp);
 
 //                        //Share context to broadcast and send to database
 //                        if (Plugin.pluginContext != null)
 //                            Plugin.pluginContext.onContext();
 
-                    }
-                }
-            }
-
-            // Detect application opening.
-            for (Trigger trigger : triggerList) {
-                if (trigger instanceof TriggerAppOpenClose) {
-
-                    for (String app : ((TriggerAppOpenClose) trigger).applications) {
-
-                        if ((app.equals(currentApp) && !prevApps.contains(currentApp)) &&
-                           ((TriggerAppOpenClose) trigger).open) {
-                            Aware.setSetting(context, Aware_Preferences.STATUS_ESM, true);
-                            Log.d("APP_OPEN_CLOSE", "Application opened. ESM delivered.");
-                            ESM.queueESM(context, trigger.esm);
-
-                        }
-                    }
-                }
-            }
-
-            // Update previous application queue.
-            if (prevApps.size() >= PREVIOUS_APP_SIZE) {
-                prevApps.remove();
-                prevApps.add(currentApp);
-            } else {
-                prevApps.add(currentApp);
-            }
-
-            Log.d("APP_OPEN_CLOSE", prevApps.toString());
-
-            // Detect application closing.
-            for (Trigger trigger : triggerList) {
-                if (trigger instanceof TriggerAppOpenClose) {
-                    for (String app : ((TriggerAppOpenClose) trigger).applications) {
-                        if (hasAppClosed(prevApps, app) && ((TriggerAppOpenClose) trigger).close) {
-                            Aware.setSetting(context, Aware_Preferences.STATUS_ESM, true);
-                            Log.d("APP_OPEN_CLOSE", "Application closed. ESM delivered.");
-                            ESM.queueESM(context, trigger.esm);
-
-                        }
-                    }
                 }
             }
         }
+        return currentApp;
+    }
+
+    private static boolean hasAppOpened(String currentApp, String app) {
+        return (app.equals(currentApp) && !prevApps.contains(currentApp));
     }
 
     /**
@@ -252,4 +270,78 @@ public class Plugin extends Aware_Plugin {
         return false;
     }
 
+    /**
+     * Application opening/closing interrupt handler.
+     * @param context     context
+     * @param currentApp  current app name
+     */
+    private static void appTrigger(Context context, String currentApp) {
+        // Detect application opening.
+        for (Trigger trigger : triggerList) {
+            // Application Open/Close Trigger.
+            if (trigger instanceof TriggerAppOpenClose) {
+                for (String app : ((TriggerAppOpenClose) trigger).applications) {
+                    if (hasAppOpened(currentApp, app) && ((TriggerAppOpenClose) trigger).open) {
+                        Log.d("APP_OPEN_CLOSE", "Application opened. ESM delivered.");
+                        ESM.queueESM(context, trigger.esm);
+                    }
+                }
+            }
+            // Application Delay Trigger.
+            if (trigger instanceof TriggerAppDelay) {
+                boolean setTimer = false;
+                for (String app : ((TriggerAppDelay) trigger).applications) {
+                    if (hasAppOpened(currentApp, app)) {
+                        setTimer = true;
+                    }
+                }
+                if (setTimer) {
+                    for (TimerInfo timerInfo : timerInfos) {
+                        if (timerInfo.triggerAppDelay == trigger) {
+                            Log.d("APP_DELAY", "Timer Set.");
+                            timerInfo.setTimer();
+                        }
+                    }
+                }
+            }
+        }
+
+        // Update previous application queue.
+        if (prevApps.size() >= PREVIOUS_APP_SIZE) {
+            prevApps.remove();
+            prevApps.add(currentApp);
+        } else {
+            prevApps.add(currentApp);
+        }
+        Log.d("APP_OPEN_CLOSE", prevApps.toString());
+
+        // Detect application closing.
+        for (Trigger trigger : triggerList) {
+            // Application Open/Close Trigger.
+            if (trigger instanceof TriggerAppOpenClose) {
+                for (String app : ((TriggerAppOpenClose) trigger).applications) {
+                    if (hasAppClosed(prevApps, app) && ((TriggerAppOpenClose) trigger).close) {
+                        Log.d("APP_OPEN_CLOSE", "Application closed. ESM delivered.");
+                        ESM.queueESM(context, trigger.esm);
+                    }
+                }
+            }
+            // Application Delay Trigger.
+            if (trigger instanceof TriggerAppDelay) {
+                boolean disableTimer = false;
+                for (String app : ((TriggerAppDelay) trigger).applications) {
+                    if (hasAppClosed(prevApps, app)) {
+                        disableTimer = true;
+                    }
+                }
+                if (disableTimer) {
+                    for (TimerInfo timerInfo : timerInfos) {
+                        if (timerInfo.triggerAppDelay == trigger) {
+                            timerInfo.disableTimer();
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

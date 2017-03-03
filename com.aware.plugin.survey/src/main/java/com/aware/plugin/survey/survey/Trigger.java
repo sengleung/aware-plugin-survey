@@ -57,5 +57,4 @@ public class Trigger {
         }
         return esms;
     }
-
 }

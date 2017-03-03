@@ -19,6 +19,10 @@ import java.util.List;
 public class ConfigFile {
     private Plugin plugin;
 
+    /**
+     * Trigger Configuration File constructor.
+     * @param plugin  survey plugin
+     */
     public ConfigFile(Plugin plugin) {
         this.plugin = plugin;
 
@@ -28,7 +32,7 @@ public class ConfigFile {
      * ESM trigger options.
      */
      private enum TriggerType {
-        TIME("time"), APP_OPEN_CLOSE("app-open-close");
+        TIME("time"), APP_OPEN_CLOSE("app-open-close"), APP_DELAY("app-delay");
 
         private String name;
 
@@ -72,6 +76,10 @@ public class ConfigFile {
                         case "app-open-close":
                             parameters.add(TriggerType.APP_OPEN_CLOSE.toString());
                             triggerType = TriggerType.APP_OPEN_CLOSE;
+                            break;
+                        case "app-delay":
+                            parameters.add(TriggerType.APP_DELAY.toString());
+                            triggerType = TriggerType.APP_DELAY;
                             break;
                         default:
                             break;
@@ -117,13 +125,31 @@ public class ConfigFile {
                                 parameters.clear();
                             }
                             break;
+                        case APP_DELAY:
+                            if (line.startsWith("Applications", 0)) {
+                                String[] appList = line.split("=");
+                                String[] appsArr = appList[1].split(",");
+                                parameters.add(new ArrayList<>(Arrays.asList(appsArr)));
+                            } else if (line.startsWith("Delay", 0)) {
+                                String[] delay = line.split("=");
+                                Integer delayInt = Integer.parseInt(delay[1]);
+                                parameters.add(delayInt);
+                                triggers.add(new TriggerAppDelay(plugin,
+                                        (String) parameters.get(0),
+                                        (String) parameters.get(1),
+                                        (List<String>) parameters.get(2),
+                                        (Integer) parameters.get(3)
+                                ));
+                                parameters.clear();
+                            }
+                            break;
                         default:
                             break;
                     }
                 }
             }
         } catch (IOException ex) {
-            throw new RuntimeException("Error in reading CSV file: " + ex);
+            throw new RuntimeException("Error in reading JSON file: " + ex);
         } finally {
             try {
                 inputStream.close();

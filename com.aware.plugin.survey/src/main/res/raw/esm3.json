@@ -1,0 +1,72 @@
+[
+  {"esm": {
+    "esm_type":1,
+    "esm_title":"Application Delay Trigger",
+    "esm_instructions":"The user can answer an open ended question.",
+    "esm_submit":"Next",
+    "esm_expiration_threshold":60,
+    "esm_trigger":"AWARE Tester"
+  }},
+
+  {"esm": {
+    "esm_type":2,
+    "esm_title":"ESM Radio",
+    "esm_instructions":"The user can only choose one option",
+    "esm_radios":["Option one","Option two","Other"],
+    "esm_submit":"Next",
+    "esm_expiration_threshold":60,
+    "esm_trigger":"AWARE Tester"
+  }},
+
+  {"esm": {
+    "esm_type":3,
+    "esm_title":"Checkbox",
+    "esm_checkboxes":["Option 1","Option 2","Other"],
+    "esm_submit":"OK",
+    "esm_instructions":"Multiple choice is allowed"
+  }},
+
+  {"esm": {
+    "esm_type":4,
+    "esm_title":"Likert",
+    "esm_likert_max":5,
+    "esm_likert_max_label":"Great",
+    "esm_likert_min_label":"Poor",
+    "esm_likert_step":1,
+    "esm_instructions":"Likert ESM",
+    "esm_submit":"OK"
+  }},
+
+  {"esm": {
+    "esm_type":5,
+    "esm_title":"ESM Quick Answer",
+    "esm_instructions":"One touch answer",
+    "esm_quick_answers":["Yes","No","Maybe"],
+    "esm_expiration_threshold":60,
+    "esm_trigger":"AWARE Tester"
+  }},
+
+  {"esm": {
+    "esm_type":6,
+    "esm_title":"ESM Scale",
+    "esm_instructions":"Between 0 and 10 with 2 increments",
+    "esm_scale_min":0,
+    "esm_scale_max":10,
+    "esm_scale_start":0,
+    "esm_scale_max_label":"10",
+    "esm_scale_min_label":"0",
+    "esm_scale_step":2,
+    "esm_submit":"OK",
+    "esm_expiration_threshold":60,
+    "esm_trigger":"AWARE Tester"
+  }},
+
+  {"esm": {
+    "esm_type":7,
+    "esm_title":"ESM Numeric",
+    "esm_instructions":"The user can enter a number.",
+    "esm_submit":"Next",
+    "esm_expiration_threshold":60,
+    "esm_trigger":"AWARE Tester"
+  }}
+]

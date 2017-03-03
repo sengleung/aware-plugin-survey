@@ -52,5 +52,4 @@ public class TriggerTime extends Trigger {
         } catch (Exception e) {
         }
     }
-
 }
