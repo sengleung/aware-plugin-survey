@@ -1,4 +1,4 @@
-AWARE Survey Plugin
+AWARE Plugin Survey
 ===================
 
 A time and application-usage triggered mobile research survey plugin for the AWARE Framework.
@@ -29,7 +29,7 @@ The following instructions are intended for the end-user/surveyee.
 
 ## Demonstration
 
-<img src="https://github.com/sengleung/aware-plugin-survey/blob/master/assets/aware-plugin-survey-demo.gif" width="270">
+![](https://github.com/sengleung/aware-plugin-survey/blob/master/assets/aware-plugin-survey-demo.gif)
 
 Configuration
 =============
@@ -105,6 +105,24 @@ Questionnaire is triggered at application opening and/or closing.
 * `Close`
 
   Display questionnaire when application closes. Only accepts `true` or `false`.
+
+### Application Time Delay
+
+Questionnaire is triggered after an application is continuously used for a certain time.
+
+	[ESM_3_APPLICATION_DELAY]
+	Trigger=app-delay
+	ESM=esm3
+	Applications=Calculator,Messenger
+	Delay=10
+
+* `Applications`
+
+  A single application name or a list of application names which displays a questionnaire after a certain time.
+
+* `Delay`
+
+  The duration in seconds for which the application is used continuously to trigger a questionnaire.
 
 ## Questionnaires
 
