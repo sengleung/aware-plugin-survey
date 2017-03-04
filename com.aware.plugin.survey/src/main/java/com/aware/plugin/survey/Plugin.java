@@ -11,6 +11,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.aware.Applications;
 import com.aware.Aware;
@@ -44,6 +45,12 @@ public class Plugin extends Aware_Plugin {
     private static Queue<String> prevApps;
     private static final int PREVIOUS_APP_SIZE = 4;
 
+    private static ContextProducer pluginContext;
+    private static String currentApp;
+    private static long timestamp;
+    private static String surveyTrigger;
+    private static String surveyAnswers;
+    
     @Override
     public void onCreate() {
         super.onCreate();
@@ -56,12 +63,27 @@ public class Plugin extends Aware_Plugin {
          * This method is called automatically when triggering
          * {@link Aware#ACTION_AWARE_CURRENT_CONTEXT}
          **/
-        CONTEXT_PRODUCER = new ContextProducer() {
+        pluginContext = new ContextProducer() {
             @Override
             public void onContext() {
-                //Broadcast your context here
+                //Save rowData in database 
+                ContentValues rowData = new ContentValues();
+                rowData.put(Provider.Plugin_Survey_Data.TIMESTAMP, 0);
+                rowData.put(Provider.Plugin_Survey_Data.DEVICE_ID, Aware.getSetting(getApplicationContext(), Aware_Preferences.DEVICE_ID));
+                rowData.put(Provider.Plugin_Survey_Data.NAME, currentApp);
+                rowData.put(Provider.Plugin_Survey_Data.BIG_NUMBER, timestamp);
+//                rowData.put(Provider.Plugin_Survey_Data.TRIGGER, surveyTrigger);
+//                rowData.put(Provider.Plugin_Survey_Data.ANSWERS, surveyAnswers);
+                rowData.put(Provider.Plugin_Survey_Data.TEST, surveyAnswers);
+
+                Log.d(TAG,"Sending data "+rowData.toString());
+                //Toast.makeText(getApplicationContext(), "Sending data "+currentApp, Toast.LENGTH_LONG).show();
+                getContentResolver().insert(Provider.Plugin_Survey_Data.CONTENT_URI, rowData);
+
+                //broadcast?
             }
         };
+        CONTEXT_PRODUCER = pluginContext;
 
 
         //Add permissions you need (Android M+).
@@ -72,7 +94,11 @@ public class Plugin extends Aware_Plugin {
         //To sync data to the server, you'll need to set this variables from your ContentProvider
         DATABASE_TABLES = Provider.DATABASE_TABLES;
         TABLES_FIELDS = Provider.TABLES_FIELDS;
-        CONTEXT_URIS = new Uri[]{ Provider.TableOne_Data.CONTENT_URI }; //this syncs dummy TableOne_Data to server
+        CONTEXT_URIS = new Uri[]{ Provider.Plugin_Survey_Data.CONTENT_URI }; //this syncs dummy Plugin_Survey_Data to server
+
+        Log.d("SERVER", String.valueOf(DATABASE_TABLES));
+        Log.d("SERVER", String.valueOf(TABLES_FIELDS));
+        Log.d("SERVER", String.valueOf(CONTEXT_URIS));
 
         System.out.println("Initialising triggers...");
 
@@ -100,9 +126,17 @@ public class Plugin extends Aware_Plugin {
             IntentFilter contextFilter = new IntentFilter();
             //Check the sensor/plugin documentation for specific context broadcasts.
             contextFilter.addAction(Applications.ACTION_AWARE_APPLICATIONS_FOREGROUND);
+            //TO get esm answers
+            contextFilter.addAction(ESM.ACTION_AWARE_ESM_EXPIRED);
+            contextFilter.addAction(ESM.ACTION_AWARE_ESM_DISMISSED);
+            contextFilter.addAction(ESM.ACTION_AWARE_ESM_ANSWERED);
+            contextFilter.addAction(ESM.ACTION_AWARE_ESM_QUEUE_COMPLETE);
             registerReceiver(contextReceiver, contextFilter);
         }
 
+        //join study !REQUIERED to sync data to server
+        Aware.joinStudy(this,
+                "https://api.awareframework.com/index.php/webservice/index/1118/s7VgPquEj8aM");
 
         //Activate plugin -- do this ALWAYS as the last thing (this will restart your own plugin and apply the settings)
         Aware.startPlugin(this, "com.aware.plugin.survey");
@@ -358,77 +392,97 @@ public class Plugin extends Aware_Plugin {
     public static class ContextReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
-
-            // Detect application name.
-            String currentApp = "";
-            Bundle bundle = intent.getExtras();
-            if (bundle != null) {
-                for (String key : bundle.keySet()) {
-                    Object value = bundle.get(key);
+            if(intent.getAction().equals(Applications.ACTION_AWARE_APPLICATIONS_FOREGROUND)){
+                // Detect application name.
+                boolean triggered = false;
+                Bundle bundle = intent.getExtras();
+                if (bundle != null) {
+                    for (String key : bundle.keySet()) {
+                        Object value = bundle.get(key);
 //                        Log.d(TAG, String.format("K: %s V: %s c: (%s)", key,
 //                                value.toString(), value.getClass().getName()));
 //                        System.out.println("Key: "+key+" VAL: "+value.toString()+" "+value.getClass().getName());
-                    if (value instanceof ContentValues) {
-                        ContentValues val = (ContentValues) value;
+                        if (value instanceof ContentValues) {
+                            ContentValues val = (ContentValues) value;
 //                            System.out.println("VALS: " + val.toString());
 //                            System.out.println("APP: " + val.get("application_name"));
-                        currentApp = (String) val.get("application_name");
-                        long timestamp = System.currentTimeMillis();
+                            currentApp = (String) val.get("application_name");
+                            timestamp = System.currentTimeMillis();
 
-                        Log.d(">>>>>>>>>>>>>>>>>>>>>>>", currentApp);
+                            Log.d(">>>>>>>>>>>>>>>>>>>>>>>", currentApp);
 
-
-                        //                                //Share context to broadcast and send to database
-                        //                                if (Plugin.pluginContext != null)
-                        //                                    Plugin.pluginContext.onContext();
-
-                    }
-                }
-            }
-
-            // Detect application opening.
-            for (Trigger trigger : triggerList) {
-                if (trigger instanceof TriggerAppOpenClose) {
-
-                    for (String app : ((TriggerAppOpenClose) trigger).applications) {
-
-                        if ((app.equals(currentApp) && !prevApps.contains(currentApp)) &&
-                           ((TriggerAppOpenClose) trigger).open) {
-                            Aware.setSetting(context, Aware_Preferences.STATUS_ESM, true);
-                            Log.d(">>>>>>>>>>>>>>>>>>>>>>>", "TRIGGERED");
-                            ESM.queueESM(context, trigger.esm);
 
                         }
                     }
                 }
-            }
 
-            // Update previous application queue.
-            if (prevApps.size() >= PREVIOUS_APP_SIZE) {
-                prevApps.remove();
-                prevApps.add(currentApp);
-            } else {
-                prevApps.add(currentApp);
-            }
+                // Detect application opening.
+                for (Trigger trigger : triggerList) {
+                    if (trigger instanceof TriggerAppOpenClose) {
 
-            Log.d(">>>>>>>>>>>>>>>>>>>>>>>", prevApps.toString());
+                        for (String app : ((TriggerAppOpenClose) trigger).applications) {
 
-            // Detect application closing.
-            for (Trigger trigger : triggerList) {
-                if (trigger instanceof TriggerAppOpenClose) {
-
-                    for (String app : ((TriggerAppOpenClose) trigger).applications) {
-
-                        if (hasAppClosed(prevApps, app) && ((TriggerAppOpenClose) trigger).close) {
-                            Aware.setSetting(context, Aware_Preferences.STATUS_ESM, true);
-                            Log.d(">>>>>>>>>>>>>>>>>>>>>>>", "TRIGGERED");
-                            ESM.queueESM(context, trigger.esm);
-
+                            if ((app.equals(currentApp) && !prevApps.contains(currentApp)) &&
+                                    ((TriggerAppOpenClose) trigger).open) {
+                                Aware.setSetting(context, Aware_Preferences.STATUS_ESM, true);
+                                Log.d(">>>>>>>>>>>>>>>>>>>>>>>", "TRIGGERED");
+                                ESM.queueESM(context, trigger.esm);
+                                triggered = true;
+                                surveyTrigger = "App opend: "+currentApp;
+                            }
                         }
                     }
                 }
+
+                // Update previous application queue.
+                if (prevApps.size() >= PREVIOUS_APP_SIZE) {
+                    prevApps.remove();
+                    prevApps.add(currentApp);
+                } else {
+                    prevApps.add(currentApp);
+                }
+
+                Log.d(">>>>>>>>>>>>>>>>>>>>>>>", prevApps.toString());
+
+                // Detect application closing.
+                for (Trigger trigger : triggerList) {
+                    if (trigger instanceof TriggerAppOpenClose) {
+
+                        for (String app : ((TriggerAppOpenClose) trigger).applications) {
+
+                            if (hasAppClosed(prevApps, app) && ((TriggerAppOpenClose) trigger).close) {
+                                Aware.setSetting(context, Aware_Preferences.STATUS_ESM, true);
+                                Log.d(">>>>>>>>>>>>>>>>>>>>>>>", "TRIGGERED");
+                                ESM.queueESM(context, trigger.esm);
+                                triggered = true;
+                                surveyTrigger = "App closed: "+currentApp;
+                            }
+                        }
+                    }
+                }
+
+                //Share context to broadcast and send to database
+                if ( triggered && Plugin.pluginContext != null) //add if survey_triggered
+                    Plugin.pluginContext.onContext();
+            }else if(intent.getAction().equals(ESM.ACTION_AWARE_ESM_ANSWERED)){
+                String answer = intent.getStringExtra(ESM.EXTRA_ANSWER);
+                Log.d("SURVEY",answer);
+                //add string to answers
+                surveyAnswers += answer + ", ";
+            }else if(intent.getAction().equals(ESM.ACTION_AWARE_ESM_DISMISSED)){
+                //add empty string to answers
+                Log.d("SURVEY","dismissed");
+                surveyAnswers += " dismissed.";
+                //store trigger & answers in database
+            }else if(intent.getAction().equals(ESM.ACTION_AWARE_ESM_EXPIRED)){
+                //add empty string to answers
+                Log.d("SURVEY","expiered");
+                surveyAnswers += " expiered.";
+                //only 1 question expieres at a time.
             }
-        }
+
+            }
+
     }
 
     /**
