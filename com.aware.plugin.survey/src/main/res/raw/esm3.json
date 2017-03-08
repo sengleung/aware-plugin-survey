@@ -1,7 +1,7 @@
 [
   {"esm": {
     "esm_type":1,
-    "esm_title":"App Open/Close Trigger",
+    "esm_title":"Application Delay Trigger",
     "esm_instructions":"The user can answer an open ended question.",
     "esm_submit":"Next",
     "esm_expiration_threshold":60,

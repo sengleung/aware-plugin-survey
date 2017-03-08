@@ -1,4 +1,4 @@
-AWARE Survey Plugin
+AWARE Plugin Survey
 ===================
 
 A time and application-usage triggered mobile research survey plugin for the AWARE Framework.
@@ -6,25 +6,45 @@ A time and application-usage triggered mobile research survey plugin for the AWA
 Deployment
 ==========
 
+The following instructions are intended for the end-user/surveyee.
+
 ## Installation
+
+1. Ensure that the [AWARE application](https://play.google.com/store/apps/details?id=com.aware.phone&hl=en) is installed on the device.
+2.  Enable permissions for the application.
+
+		Settings -> Accessibility -> AWARE -> on		
+
+3. Transfer the **com.aware.plugin.survey.apk** file to the device from the directory:
+
+		\apk
+	
+4. Install the **com.aware.plugin.survey.apk** onto the device.
+5. Accept any permissions requests from the plugin.
 
 ## Software Dependencies
 
-## Walkthrough
+* The minimum Android version is 4.4.1+.
+* This plugin must be used with the [AWARE](https://play.google.com/store/apps/details?id=com.aware.phone&hl=en) base application.
 
+## Demonstration
+
+<img src="https://github.com/sengleung/aware-plugin-survey/blob/master/assets/aware-plugin-survey-demo.gif" width="270">
 
 Configuration
 =============
+
+The following instructions are intended for the developer/surveyor.
 
 ## Triggers
 
 The **esm.ini** file is the configuration file for the **triggers** of *Experience Sampling Method (ESM)* questionnaires.
 
-The **esm.ini** file located in:
+The **esm.ini** file is located in:
 
 	com.aware.plugin.survey\src\main\res\raw\
 
-The file is a plain-text file editable with a basic text editor.
+The file is a plain-text file.
 An example **esm.ini** file is provided below:
 
 	[ESM_1_SPECIFIC_TIMES]
@@ -86,15 +106,33 @@ Questionnaire is triggered at application opening and/or closing.
 
   Display questionnaire when application closes. Only accepts `true` or `false`.
 
+### Application Time Delay
+
+Questionnaire is triggered after an application is continuously used for a certain time.
+
+	[ESM_3_APPLICATION_DELAY]
+	Trigger=app-delay
+	ESM=esm3
+	Applications=Calculator,Messenger
+	Delay=10
+
+* `Applications`
+
+  A single application name or a list of application names which displays a questionnaire after a certain time.
+
+* `Delay`
+
+  The duration in seconds for which the application is used continuously to trigger a questionnaire.
+
 ## Questionnaires
 
 The **&lt;file_name>.json** file contains a single question or a list of questions in sequence for the *Experience Sampling Method (ESM)* questionnaires. Each file corresponds to the respective trigger options from the **esm.ini** file.
 
-The **&lt;file_name>.json** file located in:
+The **&lt;file_name>.json** file is located in:
 
 	com.aware.plugin.survey\src\main\res\raw\
 
-The file is a plain-text file editable with a basic text editor.
+The file is a plain-text file.
 An example **esm1.ini** file is provided below:
 
 	[

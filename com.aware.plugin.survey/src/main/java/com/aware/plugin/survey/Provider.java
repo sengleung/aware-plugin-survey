@@ -25,7 +25,7 @@ public class Provider extends ContentProvider {
 
     public static String AUTHORITY = "com.aware.plugin.survey.provider.survey"; //change to package.provider.your_plugin_name
 
-    public static final int DATABASE_VERSION = 1; //increase this if you make changes to the database structure, i.e., rename columns, etc.
+    public static final int DATABASE_VERSION = 3; //increase this if you make changes to the database structure, i.e., rename columns, etc.
     public static final String DATABASE_NAME = "plugin_survey2.db"; //the database filename, use plugin_xxx for plugins.
 
     //Add here your database table names, as many as you need
