@@ -92,7 +92,6 @@ public class Provider extends ContentProvider {
     private void initialiseDatabase() {
         if (dbHelper == null)
             dbHelper = new DatabaseHelper(getContext(), DATABASE_NAME, null, DATABASE_VERSION, DATABASE_TABLES, TABLES_FIELDS);
-            Log.d("DATABSE", dbHelper.toString());
         if (database == null)
             database = dbHelper.getWritableDatabase();
     }
@@ -160,8 +159,6 @@ public class Provider extends ContentProvider {
         initialiseDatabase();
 
         ContentValues values = (initialValues != null) ? new ContentValues(initialValues) : new ContentValues();
-        Log.d("DATABASE", values.toString());
-        Log.d("DATABASE", String.valueOf(database));
 
         database.beginTransaction();
 

@@ -9,6 +9,7 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.widget.Toast;
@@ -42,7 +43,7 @@ import java.util.Queue;
  */
 public class Plugin extends Aware_Plugin {
     // Attributes to accommodate application-triggered ESMs.
-    private static final int PREVIOUS_APP_SIZE = 4;
+    private static final int PREVIOUS_APP_SIZE = 6;
 
     private boolean appTriggered;
     private static List<Trigger> triggerList;
@@ -55,6 +56,7 @@ public class Plugin extends Aware_Plugin {
     private static String surveyTrigger;
     private static String surveyAnswers = "test";
 
+    private static boolean surveyJustCompleted = false;
     /**
      * Initialise survey plugin.
      */
@@ -82,9 +84,9 @@ public class Plugin extends Aware_Plugin {
 //                rowData.put(Provider.Plugin_Survey_Data.ANSWERS, surveyAnswers);
                 rowData.put(Provider.Plugin_Survey_Data.TEST, surveyAnswers);
 
-                Log.d("SERVER", Arrays.toString(DATABASE_TABLES));
-                Log.d("SERVER", Arrays.toString(TABLES_FIELDS));
-                Log.d("SERVER", Arrays.toString(CONTEXT_URIS));
+//                Log.d("SERVER", Arrays.toString(DATABASE_TABLES));
+//                Log.d("SERVER", Arrays.toString(TABLES_FIELDS));
+//                Log.d("SERVER", Arrays.toString(CONTEXT_URIS));
                 Log.d(TAG, "Sending data " + rowData.toString());
                 //Toast.makeText(getApplicationContext(), "Sending data "+currentApp, Toast.LENGTH_LONG).show();
                 getContentResolver().insert(Provider.Plugin_Survey_Data.CONTENT_URI, rowData);
@@ -221,11 +223,29 @@ public class Plugin extends Aware_Plugin {
                 String currentApp = getCurrentAppName(intent);
 
                 for (Trigger trigger : triggerList) {
-                    if (trigger instanceof TriggerAppOpenClose ||
-                            trigger instanceof TriggerAppDelay) {
+                    if (!surveyJustCompleted &&
+                            (trigger instanceof TriggerAppOpenClose ||
+                            trigger instanceof TriggerAppDelay)) {
                         appTrigger(context, currentApp);
                     }
                 }
+            }else if(intent.getAction().equals(ESM.ACTION_AWARE_ESM_ANSWERED)){
+                Log.d("ESM ", "Answer: "+intent.getStringExtra(ESM.EXTRA_ANSWER));
+            }else if(intent.getAction().equals(ESM.ACTION_AWARE_ESM_QUEUE_COMPLETE)){
+                Log.d("ESM ", "queue complete");
+                //Disable open/close triggered surveys for oneMinute after one has completed
+                surveyJustCompleted = true;
+                int oneMinute = 60000;
+                new CountDownTimer(oneMinute, oneMinute) {
+
+                    public void onTick(long millisUntilFinished) {
+                    }
+
+                    public void onFinish() {
+                        surveyJustCompleted = false;
+                        Log.d("PAUSE", "Surveys can be triggered");
+                    }
+                }.start();
             }
 
         }
@@ -289,7 +309,10 @@ public class Plugin extends Aware_Plugin {
                     for (String app : ((TriggerAppOpenClose) trigger).applications) {
                         if (hasAppOpened(currentApp, app) && ((TriggerAppOpenClose) trigger).open) {
                             Log.d("APP_OPEN_CLOSE", "Application opened. ESM delivered.");
+                            //set esm trigger value
+                            trigger.setTrigger("App opend: "+currentApp);
                             ESM.queueESM(context, trigger.esm);
+                            //((TriggerAppOpenClose) trigger).setPause(currentApp);
                         }
                     }
                 }
@@ -328,6 +351,8 @@ public class Plugin extends Aware_Plugin {
                     for (String app : ((TriggerAppOpenClose) trigger).applications) {
                         if (hasAppClosed(prevApps, app) && ((TriggerAppOpenClose) trigger).close) {
                             Log.d("APP_OPEN_CLOSE", "Application closed. ESM delivered.");
+                            //set esm trigger value
+                            trigger.setTrigger("App closed: "+app);
                             ESM.queueESM(context, trigger.esm);
                         }
                     }
@@ -368,6 +393,9 @@ public class Plugin extends Aware_Plugin {
                         if (timerInfo.set && System.currentTimeMillis() > timerInfo.activation) {
                             Log.d("APP_DELAY", "Application duration elapsed. ESM delivered.");
                             timerInfo.disableTimer();
+                            //set esm trigger value
+                            timerInfo.triggerAppDelay.setTrigger(currentApp+ " open for " +
+                                    timerInfo.triggerAppDelay.delay + " seconds");
                             ESM.queueESM(getApplicationContext(), timerInfo.triggerAppDelay.esm);
                         }
                     }

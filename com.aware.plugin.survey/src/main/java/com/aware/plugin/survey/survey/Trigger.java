@@ -1,11 +1,18 @@
 package com.aware.plugin.survey.survey;
 
+import android.util.Log;
+
 import com.aware.plugin.survey.Plugin;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.List;
 
 /**
  * Trigger superclass.
@@ -14,6 +21,7 @@ public class Trigger {
     public Plugin plugin;
     public String trigger;
     public String esm;
+    public boolean surveyTriggered;
 
     /**
      * Trigger superclass constructor.
@@ -28,6 +36,7 @@ public class Trigger {
         this.plugin = plugin;
         this.trigger = trigger;
         this.esm = readESMFile(esmFile);
+        this.surveyTriggered = false;
     }
 
     /**
@@ -57,4 +66,20 @@ public class Trigger {
         }
         return esms;
     }
+
+    public void setTrigger(String triggerString){
+        try {
+            JSONArray esmArray = new JSONArray(this.esm);
+            for(int i = 0; i<esmArray.length(); i++){
+                JSONObject esm =  esmArray.getJSONObject(i).getJSONObject("esm");
+                esm.put("esm_trigger", triggerString);
+            }
+            Log.d("ESM", "set trigger to: "+triggerString);
+            this.esm = esmArray.toString();
+        } catch (JSONException e) {
+            e.printStackTrace();
+            Log.d("ESM", "could not set trigger!!");
+        }
+    }
+
 }
