@@ -38,6 +38,8 @@ import java.util.Queue;
  */
 public class Plugin extends Aware_Plugin {
     // Attributes to accommodate application-triggered ESMs.
+    private static int SURVEY_COUNT = 0;
+    private static int MAX_COUNT = 10;
     private static final int PREVIOUS_APP_SIZE = 4;
     private static List<Trigger> triggerList;
     private static Queue<String> prevApps;
@@ -101,7 +103,10 @@ public class Plugin extends Aware_Plugin {
             Aware.setSetting(getApplicationContext(), Aware_Preferences.STATUS_ESM, true);
             if (trigger instanceof  TriggerTime) {
                 //Aware.setSetting(getApplicationContext(), Aware_Preferences.STATUS_ESM, true);
-                ((TriggerTime) trigger).setESM();
+		if(SURVEY_COUNT < MAX_COUNT){
+                	((TriggerTime) trigger).setESM();
+			SURVEY_COUNT++;
+		}
             }
             if (trigger instanceof TriggerAppOpenClose) {
                 appTriggered = true;
