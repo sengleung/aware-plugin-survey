@@ -11,7 +11,7 @@
         <service
             android:name="com.aware.plugin.survey.Plugin"
             android:exported="true"
-            android:label="AWARE: Plugin Template"/>
+            android:label="AWARE: Plugin Survey"/>
 
         <activity
             android:name="com.aware.plugin.survey.Settings"
@@ -20,7 +20,7 @@
         <!-- Keep the ${applicationId} so there are no conflicts when merging this plugin as a library for reuse -->
         <provider
             android:name="com.aware.plugin.survey.Provider"
-            android:authorities="${applicationId}.provider.xxx"
+            android:authorities="${applicationId}.provider.survey"
             android:exported="true"
             android:readPermission="com.aware.READ_CONTEXT_DATA"
             android:writePermission="com.aware.WRITE_CONTEXT_DATA" />

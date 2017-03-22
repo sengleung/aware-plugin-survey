@@ -1,7 +1,11 @@
 package com.aware.plugin.survey.survey;
 
+import android.os.CountDownTimer;
+import android.util.Log;
+
 import com.aware.plugin.survey.Plugin;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -12,6 +16,7 @@ import java.util.List;
  */
 public class TriggerAppOpenClose extends Trigger {
     public List<String> applications;
+    public List<String> surveyTriggered;
     public final boolean open;
     public final boolean close;
 
@@ -32,7 +37,24 @@ public class TriggerAppOpenClose extends Trigger {
                                boolean close) {
         super(plugin, trigger, esmFile);
         this.applications = applications;
+        this.surveyTriggered = new ArrayList<String>();
         this.open = open;
         this.close = close;
+    }
+
+    public void setPause(final String application){
+        this.surveyTriggered.add(application);
+        int oneMinute = 60000;
+        Log.d("PAUSE", application+" added");
+        new CountDownTimer(oneMinute, oneMinute) {
+
+            public void onTick(long millisUntilFinished) {
+            }
+
+            public void onFinish() {
+                surveyTriggered.remove(application);
+                Log.d("PAUSE", application+" removed");
+            }
+        }.start();
     }
 }

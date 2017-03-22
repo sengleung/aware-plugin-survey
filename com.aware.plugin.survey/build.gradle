@@ -51,7 +51,7 @@ configurations.all {
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
-    compile "com.android.support:appcompat-v7:${support_libs}"
-    compile "com.github.denzilferreira:aware-client:master-SNAPSHOT" //compile plugin against the stable branch
-//    compile 'com.github.denzilferreira:aware-client:development-SNAPSHOT' //compile plugin against the development branch
+    compile "com.android.support:appcompat-v7:$support_libs"
+    compile "com.github.denzilferreira:aware-client:$aware_libs"
+//    compile "com.github.denzilferreira:aware-client:development-SNAPSHOT" //compile plugin against the development branch
 }
