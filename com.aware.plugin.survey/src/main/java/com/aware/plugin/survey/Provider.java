@@ -14,7 +14,6 @@ import android.provider.BaseColumns;
 import android.support.annotation.Nullable;
 import android.support.annotation.StringDef;
 import android.util.Log;
-//import android.widget.Toast;
 
 import com.aware.Aware;
 import com.aware.utils.DatabaseHelper;
@@ -25,11 +24,11 @@ public class Provider extends ContentProvider {
 
     public static String AUTHORITY = "com.aware.plugin.survey.provider.survey"; //change to package.provider.your_plugin_name
 
-    public static final int DATABASE_VERSION = 3; //increase this if you make changes to the database structure, i.e., rename columns, etc.
-    public static final String DATABASE_NAME = "plugin_survey2.db"; //the database filename, use plugin_xxx for plugins.
+    public static final int DATABASE_VERSION = 10; //increase this if you make changes to the database structure, i.e., rename columns, etc.
+    public static final String DATABASE_NAME = "plugin_survey4.db"; //the database filename, use plugin_xxx for plugins.
 
     //Add here your database table names, as many as you need
-    public static final String DB_TBL_TEMPLATE = "plugin_survey2";
+    public static final String DB_TBL_TEMPLATE = "plugin_survey4";
 
 
     //For each table, add two indexes: DIR and ITEM. The index needs to always increment. Next one is 3, and so on.
@@ -58,12 +57,11 @@ public class Provider extends ContentProvider {
         public static final String CONTENT_ITEM_TYPE = ContentResolver.CURSOR_ITEM_BASE_TYPE + "/vnd.com.aware.plugin.survey.provider.survey"; //modify me
 
         //Note: integers and strings don't need a type prefix_
-        public static final String NAME = "name";
-        public static final String BIG_NUMBER = "double_big_number"; //a double_ prefix makes a MySQL DOUBLE column
-        //public static final String TRIGGER = "trigger";
-        //public static final String ANSWERS = "answers";
-        public static final String TEST = "test";
-        //public static final String PICTURE = "blob_picture"; //a blob_ prefix makes a MySQL BLOB column
+        public static final String SURVEY_ID = "survey_id";
+        public static final String QUESTION = "question";
+        public static final String ANSWER= "answer";
+        public static final String TRIGGER = "trigger";
+        public static final String APPLICATION = "application";
     }
 
     //Define each database table fields
@@ -71,12 +69,12 @@ public class Provider extends ContentProvider {
             Plugin_Survey_Data._ID + " integer primary key autoincrement," +
                     Plugin_Survey_Data.TIMESTAMP + " real default 0," +
                     Plugin_Survey_Data.DEVICE_ID + " text default ''," +
-                    Plugin_Survey_Data.NAME + " text default ''," +
-                    Plugin_Survey_Data.BIG_NUMBER + " real default 0," +
-                   // Plugin_Survey_Data.TRIGGER + " text default ''," +
-                    //Plugin_Survey_Data.ANSWERS + " text default ''";
-                    Plugin_Survey_Data.TEST + " text default ''";
-//                   Plugin_Survey_Data.PICTURE + " blob default null";
+                    Plugin_Survey_Data.SURVEY_ID + " real default 0," +
+                    Plugin_Survey_Data.QUESTION + " text default ''," +
+                    Plugin_Survey_Data.ANSWER + " text default ''," +
+                    Plugin_Survey_Data.TRIGGER + " text default ''," +
+                   // Plugin_Survey_Data.APPLICATION + " text default ''," +
+                   Plugin_Survey_Data.APPLICATION + " text default ''";
 
     /**
      * Share the fields with AWARE so we can replicate the table schema on the server
@@ -116,12 +114,12 @@ public class Provider extends ContentProvider {
         tableOneHash.put(Plugin_Survey_Data._ID, Plugin_Survey_Data._ID);
         tableOneHash.put(Plugin_Survey_Data.TIMESTAMP, Plugin_Survey_Data.TIMESTAMP);
         tableOneHash.put(Plugin_Survey_Data.DEVICE_ID, Plugin_Survey_Data.DEVICE_ID);
-        tableOneHash.put(Plugin_Survey_Data.NAME, Plugin_Survey_Data.NAME);
-        tableOneHash.put(Plugin_Survey_Data.BIG_NUMBER, Plugin_Survey_Data.BIG_NUMBER);
-//        tableOneHash.put(Plugin_Survey_Data.TRIGGER, Plugin_Survey_Data.TRIGGER);
-//        tableOneHash.put(Plugin_Survey_Data.ANSWERS, Plugin_Survey_Data.ANSWERS);
-        tableOneHash.put(Plugin_Survey_Data.TEST, Plugin_Survey_Data.TEST);
-//        tableOneHash.put(Plugin_Survey_Data.PICTURE, Plugin_Survey_Data.PICTURE);
+        tableOneHash.put(Plugin_Survey_Data.SURVEY_ID, Plugin_Survey_Data.SURVEY_ID);
+        tableOneHash.put(Plugin_Survey_Data.QUESTION, Plugin_Survey_Data.QUESTION);
+        tableOneHash.put(Plugin_Survey_Data.TRIGGER, Plugin_Survey_Data.TRIGGER);
+        tableOneHash.put(Plugin_Survey_Data.ANSWER, Plugin_Survey_Data.ANSWER);
+        tableOneHash.put(Plugin_Survey_Data.APPLICATION, Plugin_Survey_Data.APPLICATION);
+
 
         return true;
     }
