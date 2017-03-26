@@ -24,11 +24,11 @@ public class Provider extends ContentProvider {
 
     public static String AUTHORITY = "com.aware.plugin.survey.provider.survey"; //change to package.provider.your_plugin_name
 
-    public static final int DATABASE_VERSION = 10; //increase this if you make changes to the database structure, i.e., rename columns, etc.
-    public static final String DATABASE_NAME = "plugin_survey4.db"; //the database filename, use plugin_xxx for plugins.
+    public static final int DATABASE_VERSION = 14; //increase this if you make changes to the database structure, i.e., rename columns, etc.
+    public static final String DATABASE_NAME = "plugin_survey1.db"; //the database filename, use plugin_xxx for plugins.
 
     //Add here your database table names, as many as you need
-    public static final String DB_TBL_TEMPLATE = "plugin_survey4";
+    public static final String DB_TBL_TEMPLATE = "plugin_survey1";
 
 
     //For each table, add two indexes: DIR and ITEM. The index needs to always increment. Next one is 3, and so on.
@@ -58,10 +58,15 @@ public class Provider extends ContentProvider {
 
         //Note: integers and strings don't need a type prefix_
         public static final String SURVEY_ID = "survey_id";
+        public static final String QUESTION_ID = "question_id";
         public static final String QUESTION = "question";
         public static final String ANSWER= "answer";
         public static final String TRIGGER = "trigger";
         public static final String APPLICATION = "application";
+        public static final String PREV_APPLICATION = "previous"; //TODO previous_application
+        public static final String DURATION = "duration";
+        public static final String APP_TABLE_ID = "app_table_id";
+
     }
 
     //Define each database table fields
@@ -70,11 +75,15 @@ public class Provider extends ContentProvider {
                     Plugin_Survey_Data.TIMESTAMP + " real default 0," +
                     Plugin_Survey_Data.DEVICE_ID + " text default ''," +
                     Plugin_Survey_Data.SURVEY_ID + " real default 0," +
+                    Plugin_Survey_Data.QUESTION_ID + " real default 0," +
                     Plugin_Survey_Data.QUESTION + " text default ''," +
                     Plugin_Survey_Data.ANSWER + " text default ''," +
                     Plugin_Survey_Data.TRIGGER + " text default ''," +
-                   // Plugin_Survey_Data.APPLICATION + " text default ''," +
-                   Plugin_Survey_Data.APPLICATION + " text default ''";
+                    Plugin_Survey_Data.APPLICATION + " text default '',"+
+                    Plugin_Survey_Data.DURATION + " real default 0,"+
+                    Plugin_Survey_Data.PREV_APPLICATION + " text default ''," +
+                    Plugin_Survey_Data.APP_TABLE_ID + " real default 0";
+
 
     /**
      * Share the fields with AWARE so we can replicate the table schema on the server
@@ -115,12 +124,14 @@ public class Provider extends ContentProvider {
         tableOneHash.put(Plugin_Survey_Data.TIMESTAMP, Plugin_Survey_Data.TIMESTAMP);
         tableOneHash.put(Plugin_Survey_Data.DEVICE_ID, Plugin_Survey_Data.DEVICE_ID);
         tableOneHash.put(Plugin_Survey_Data.SURVEY_ID, Plugin_Survey_Data.SURVEY_ID);
+        tableOneHash.put(Plugin_Survey_Data.QUESTION_ID, Plugin_Survey_Data.QUESTION_ID);
         tableOneHash.put(Plugin_Survey_Data.QUESTION, Plugin_Survey_Data.QUESTION);
         tableOneHash.put(Plugin_Survey_Data.TRIGGER, Plugin_Survey_Data.TRIGGER);
         tableOneHash.put(Plugin_Survey_Data.ANSWER, Plugin_Survey_Data.ANSWER);
         tableOneHash.put(Plugin_Survey_Data.APPLICATION, Plugin_Survey_Data.APPLICATION);
-
-
+        tableOneHash.put(Plugin_Survey_Data.DURATION, Plugin_Survey_Data.DURATION);
+        tableOneHash.put(Plugin_Survey_Data.PREV_APPLICATION, Plugin_Survey_Data.PREV_APPLICATION);
+        tableOneHash.put(Plugin_Survey_Data.APP_TABLE_ID, Plugin_Survey_Data.APP_TABLE_ID);
         return true;
     }
 

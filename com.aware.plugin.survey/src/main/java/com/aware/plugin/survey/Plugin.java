@@ -1,13 +1,19 @@
 package com.aware.plugin.survey;
 
+import android.app.AlarmManager;
+import android.app.Application;
+import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
 import android.net.Uri;
+import android.nfc.Tag;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.support.v4.content.ContextCompat;
@@ -24,6 +30,7 @@ import com.aware.plugin.survey.survey.Trigger;
 import com.aware.plugin.survey.survey.TriggerAppDelay;
 import com.aware.plugin.survey.survey.TriggerAppOpenClose;
 import com.aware.plugin.survey.survey.TriggerTime;
+import com.aware.providers.Applications_Provider;
 import com.aware.ui.PermissionsHandler;
 import com.aware.utils.Aware_Plugin;
 import com.aware.utils.Scheduler;
@@ -50,23 +57,39 @@ public class Plugin extends Aware_Plugin {
 
     //MAXIMUM NUMBER OF SURVEYS PER DAY
     private static final int MAX_NUM_OF_SURVEYS = 4;
+    private static final int TIME_BETWEEN_SURVEYS = 30; //in seconds
+    private static final String PREV_NUM_OF_SURVEYS = "Pref";
+    private static final String PREV_KEY = "num_of_surveys";
+
     // Attributes to accommodate application-triggered ESMs.
     private static final int PREVIOUS_APP_SIZE = 6;
     private static final String NEW_DAY = "NEW_DAY" ;
 
     private boolean appTriggered;
     private static List<Trigger> triggerList;
-    private static Queue<String> prevApps;
+    private static List<String> prevApps;
     private static List<TimerInfo> timerInfos;
+    private static List<ConfigFile.Tuple> timeBetweenApps;
+    private static boolean[] appDelays;
 
     private static ContextProducer pluginContext;
-    private static String triggerApp;
+    private static String triggerApp = "";
+    private static String currentApp = "";
+    private static String prevApp = "";
     private static String currentESM;
     private static String surveyTrigger;
     private static String answer = "";
-    private static String question;
+    private static String question = "";
+    private static long timestamp;
+    private static long surveyTimestamp;
+    private static long duration;
+    private static long currentDuration;
     private static int questionIndex;
-    private static int numOfSurveys = 0;
+    private static int numOfSurveys;
+    private static int currentAppID;
+    private static int triggerAppID;
+
+    SharedPreferences pref;
 
     private static boolean surveyJustCompleted = false;
     /**
@@ -87,28 +110,31 @@ public class Plugin extends Aware_Plugin {
         pluginContext = new ContextProducer() {
             @Override
             public void onContext() {
-                //Save rowData in database 
-                ContentValues rowData = new ContentValues();
-                rowData.put(Provider.Plugin_Survey_Data.TIMESTAMP, System.currentTimeMillis());
-                rowData.put(Provider.Plugin_Survey_Data.DEVICE_ID, Aware.getSetting(getApplicationContext(), Aware_Preferences.DEVICE_ID));
-                rowData.put(Provider.Plugin_Survey_Data.SURVEY_ID, numOfSurveys);
-                rowData.put(Provider.Plugin_Survey_Data.QUESTION, question);
-                rowData.put(Provider.Plugin_Survey_Data.ANSWER, answer);
-                rowData.put(Provider.Plugin_Survey_Data.TRIGGER, surveyTrigger);
-                rowData.put(Provider.Plugin_Survey_Data.APPLICATION, triggerApp);
+                //Save rowData in database
+                if(!(question.equals("") && answer.equals(""))) {
+                    ContentValues rowData = new ContentValues();
+                    rowData.put(Provider.Plugin_Survey_Data.TIMESTAMP, System.currentTimeMillis());
+                    rowData.put(Provider.Plugin_Survey_Data.DEVICE_ID, Aware.getSetting(getApplicationContext(), Aware_Preferences.DEVICE_ID));
+                    rowData.put(Provider.Plugin_Survey_Data.SURVEY_ID, numOfSurveys);
+                    rowData.put(Provider.Plugin_Survey_Data.QUESTION_ID, questionIndex);
+                    rowData.put(Provider.Plugin_Survey_Data.QUESTION, question);
+                    rowData.put(Provider.Plugin_Survey_Data.ANSWER, answer);
+                    rowData.put(Provider.Plugin_Survey_Data.TRIGGER, surveyTrigger);
+                    rowData.put(Provider.Plugin_Survey_Data.APPLICATION, triggerApp);
+                    rowData.put(Provider.Plugin_Survey_Data.DURATION, duration);
+                    int index = prevApps.indexOf(triggerApp);
+                    String previousApp = (index > 0) ? prevApps.get(index - 1) : "";
+                    rowData.put(Provider.Plugin_Survey_Data.PREV_APPLICATION, previousApp);
+                    rowData.put(Provider.Plugin_Survey_Data.APP_TABLE_ID, surveyTimestamp);
 
-//                Log.d("SERVER", Arrays.toString(DATABASE_TABLES));
-//                Log.d("SERVER", Arrays.toString(TABLES_FIELDS));
-//                Log.d("SERVER", Arrays.toString(CONTEXT_URIS));
-                Log.d(TAG, "Sending data " + rowData.toString());
-                //Toast.makeText(getApplicationContext(), "Sending data "+currentApp, Toast.LENGTH_LONG).show();
-                getContentResolver().insert(Provider.Plugin_Survey_Data.CONTENT_URI, rowData);
+                    Log.d(TAG, "Sending data " + rowData.toString());
+                    getContentResolver().insert(Provider.Plugin_Survey_Data.CONTENT_URI, rowData);
+                    //broadcast?
 
-                //broadcast?
+                }
             }
         };
         CONTEXT_PRODUCER = pluginContext;
-
 
         //Add permissions you need (Android M+).
         //By default, AWARE asks access to the #Manifest.permission.WRITE_EXTERNAL_STORAGE
@@ -120,32 +146,35 @@ public class Plugin extends Aware_Plugin {
         TABLES_FIELDS = Provider.TABLES_FIELDS;
         CONTEXT_URIS = new Uri[]{Provider.Plugin_Survey_Data.CONTENT_URI}; //this syncs dummy Plugin_Survey_Data to server
 
+        //RESTORE Count of max num (0 for mode private)
+        pref = getSharedPreferences(PREV_NUM_OF_SURVEYS, 0);
+        numOfSurveys = pref.getInt(PREV_KEY, 0);
+
         // Clear previous Scheduler.
 //        System.out.println("Clearing previous Scheduler.");
 //        for (int i = 0; i < 24; i++) {
 //            for (int j = 0; j < 60; j++) {
 //                Scheduler.removeSchedule(getApplicationContext(),
 //                        "ESM_TIME_TRIGGER_" + String.format("%02d", i) +
-//                                ":" + String.format("%02d", j),
-//                        getPackageName()
+//                                ":" + String.format("%02d", j)
 //                );
 //            }
 //        }
+//        Scheduler.removeSchedule(getApplicationContext(), "ESM_TIME_TRIGGER_12:00");
 
         // Parse configuration file and ESM JSONs.
         Aware.setSetting(getApplicationContext(), Aware_Preferences.STATUS_ESM, false);
         ConfigFile cf = new ConfigFile(this);
         triggerList = cf.getTriggers();
+        timeBetweenApps = cf.getDurations();
 
         // Initialise triggers.
-        System.out.println("Initialising triggers.");
         timerInfos = new ArrayList<>();
         boolean appTriggered = false;
         boolean appDelayTrigger = false;
         for (Trigger trigger : triggerList) {
-            Aware.setSetting(getApplicationContext(), Aware_Preferences.STATUS_ESM, true);
+           // Aware.setSetting(getApplicationContext(), Aware_Preferences.STATUS_ESM, true);
             if (trigger instanceof TriggerTime) {
-                //Aware.setSetting(getApplicationContext(), Aware_Preferences.STATUS_ESM, true);
                 ((TriggerTime) trigger).setESM();
             }
             if (trigger instanceof TriggerAppOpenClose) {
@@ -162,6 +191,7 @@ public class Plugin extends Aware_Plugin {
             IntentFilter contextFilter = new IntentFilter();
             //Check the sensor/plugin documentation for specific context broadcasts.
             contextFilter.addAction(Applications.ACTION_AWARE_APPLICATIONS_FOREGROUND);
+            contextFilter.addAction(Applications.ACTION_AWARE_APPLICATIONS_HISTORY);
             //TO get esm answers
             contextFilter.addAction(ESM.ACTION_AWARE_ESM_EXPIRED);
             contextFilter.addAction(ESM.ACTION_AWARE_ESM_DISMISSED);
@@ -171,31 +201,37 @@ public class Plugin extends Aware_Plugin {
             registerReceiver(contextReceiver, contextFilter);
         }
 
-        //
         if (appDelayTrigger) {
             DelayTimer tx = new DelayTimer();
             tx.start();
         }
-        //[14:00,21:10,13:12,20:54,20:55]
-        //Set the newday broacast to send at 0:00 p.m.
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTimeInMillis(System.currentTimeMillis());
-        calendar.set(Calendar.HOUR_OF_DAY, 0);
-       // calendar.set(Calendar.MINUTE, 25);
-        Scheduler.Schedule newDay = new Scheduler.Schedule("day");
-        try {
-            newDay.setTimer(calendar)
-                    .setActionType(Scheduler.ACTION_TYPE_BROADCAST)
-                    .setActionIntentAction(NEW_DAY);
-            Scheduler.saveSchedule(getApplicationContext(), newDay);
-        } catch (JSONException e) {
-            e.printStackTrace();
+        appDelays = new boolean[timeBetweenApps.size()];
+        for(int i=0; i<appDelays.length; i++){
+            appDelays[i]=false;
         }
 
+        //Set the newday broacast to send at 0:00 p.m., to reset numOfSurveys
+        setNewDayTimer();
 
         //join study !REQUIERED to sync data to server
-        Aware.joinStudy(this,
-                "https://api.awareframework.com/index.php/webservice/index/1118/s7VgPquEj8aM");
+ //       https://api.awareframework.com/index.php/webservice/index/1058/kGP61oC2ukdh
+ //       Aware.joinStudy(this,
+ //               "https://api.awareframework.com/index.php/webservice/index/1118/s7VgPquEj8aM");
+//        Aware.joinStudy(this,
+//                "https://api.awareframework.com/index.php/webservice/index/1058/kGP61oC2ukdh");
+    }
+
+    private void setNewDayTimer() {
+        Context context = getApplicationContext();
+        PendingIntent pi = PendingIntent.getBroadcast(context, 0, new Intent(NEW_DAY), PendingIntent.FLAG_UPDATE_CURRENT);
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTimeInMillis(System.currentTimeMillis());
+        calendar.set(Calendar.SECOND, 0);
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.HOUR, 0);
+        calendar.set(Calendar.AM_PM, Calendar.AM);
+        AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        alarmManager.setRepeating(AlarmManager.RTC, calendar.getTimeInMillis(), 1000 * 60 *60 *24, pi);
     }
 
     /**
@@ -207,7 +243,6 @@ public class Plugin extends Aware_Plugin {
 
         if (PERMISSIONS_OK) {
             DEBUG = Aware.getSetting(this, Aware_Preferences.DEBUG_FLAG).equals("true");
-
             //Initialize our plugin's settings
             Aware.setSetting(this, Settings.STATUS_SURVEY_PLUGIN, true);
             //Initialise AWARE instance in plugin
@@ -224,19 +259,23 @@ public class Plugin extends Aware_Plugin {
     public void onDestroy() {
         super.onDestroy();
 
+        //Save num of surveys
+        SharedPreferences.Editor editor = pref.edit();
+        editor.putInt(PREV_KEY, numOfSurveys);
+        editor.commit();
+
         Aware.setSetting(this, Settings.STATUS_SURVEY_PLUGIN, false);
 
         //Stop AWARE's instance running inside the plugin package
-        //Aware.stopAWARE();
         Aware.stopAWARE(this);
     }
 
-    private static ContextReceiver contextReceiver = new ContextReceiver();
+    private  ContextReceiver contextReceiver = new ContextReceiver();
 
     /**
      * Class for application opening/closing detection.
      */
-    public static class ContextReceiver extends BroadcastReceiver {
+    public  class ContextReceiver extends BroadcastReceiver {
 
         /**
          * Interrupt handling for application opening/closing.
@@ -247,31 +286,28 @@ public class Plugin extends Aware_Plugin {
         @Override
         public void onReceive(Context context, Intent intent) {
             if (intent.getAction().equals(Applications.ACTION_AWARE_APPLICATIONS_FOREGROUND)) {
-                // Detect application name.
-                boolean triggered = false;
+                Log.d("SURVEY>>>>>>>>>", "NEW APP");
+                newApp(context, intent);
+            }else if(intent.getAction().equals(Applications.ACTION_AWARE_APPLICATIONS_HISTORY)){
 
-                String currentApp = getCurrentAppName(intent);
-
-                Log.d("NUM", String.valueOf(numOfSurveys));
-                for (Trigger trigger : triggerList) {
-                    if (!surveyJustCompleted && numOfSurveys<MAX_NUM_OF_SURVEYS &&
-                            (trigger instanceof TriggerAppOpenClose ||
-                            trigger instanceof TriggerAppDelay)) {
-                        appTrigger(context, currentApp);
-                    }
-                }
+            }else if(intent.getAction().equals(NEW_DAY)){
+                Log.d(TAG+"NEW DAY", String.valueOf(numOfSurveys));
+                Toast.makeText(getApplicationContext(), "NEW DAY",
+                        Toast.LENGTH_SHORT).show();
+                numOfSurveys = 0;
+                Log.d(TAG+"NEW DAY", String.valueOf(numOfSurveys));
             }else if(intent.getAction().equals(ESM.ACTION_AWARE_ESM_ANSWERED)){
                 //set question and anser to save
                 question = setQusetion();
                 answer = intent.getStringExtra(ESM.EXTRA_ANSWER);
                 questionIndex++;
-                Log.d("ESM ", "Answer: "+intent.getStringExtra(ESM.EXTRA_ANSWER));
+                Log.d(TAG+"ESM ", "Answer: "+intent.getStringExtra(ESM.EXTRA_ANSWER));
                 //Share context to broadcast and send to database
                 if (Plugin.pluginContext != null)
                     Plugin.pluginContext.onContext();
 
             }else if(intent.getAction().equals(ESM.ACTION_AWARE_ESM_DISMISSED)){
-                Log.d("ESM ", "Dismissed");
+                Log.d(TAG+"ESM ", "Dismissed");
                 question = setQusetion();
                 answer = "dismissed";
                 while(!question.equals("")){
@@ -284,52 +320,77 @@ public class Plugin extends Aware_Plugin {
                     question = setQusetion();
                 }
             }else if(intent.getAction().equals(ESM.ACTION_AWARE_ESM_QUEUE_COMPLETE)){
-                Log.d("ESM ", "queue complete");
-                //Disable open/close triggered surveys for oneMinute after one has completed
+                Log.d(TAG+"ESM ", "queue complete");
+                //Disable  surveys for oneMinute after one has completed
                 surveyJustCompleted = true;
                 int oneMinute = 60000;
-                new CountDownTimer(oneMinute/60, oneMinute/60) {
-
+                int oneSecond = 1000;
+                new CountDownTimer(oneSecond*TIME_BETWEEN_SURVEYS, oneSecond*TIME_BETWEEN_SURVEYS) {
                     public void onTick(long millisUntilFinished) {
                     }
-
                     public void onFinish() {
                         surveyJustCompleted = false;
-                        Log.d("PAUSE", "Surveys can be triggered");
+                        Log.d(TAG+"PAUSE", "Surveys can be triggered");
                     }
                 }.start();
-            }else if(intent.getAction().equals(NEW_DAY)){
-                Log.d("NEW DAY", String.valueOf(numOfSurveys));
-                numOfSurveys = 0;
-                Log.d("NEW DAY", String.valueOf(numOfSurveys));
-
+                final int index = getIndex(triggerApp, timeBetweenApps);
+                if(index>=0){
+                    appDelays[index] = true;
+                    Log.d(TAG+"PAUSE", "Surveys paused: "+index+" "+triggerApp);
+                    int time = timeBetweenApps.get(index).getInt();
+                    new CountDownTimer(oneSecond*time, oneSecond*time) {
+                        public void onTick(long millisUntilFinished) {
+                        }
+                        public void onFinish() {
+                            appDelays[index] = false;
+                            Log.d(TAG+"PAUSE", "Surveys can be triggered for "+index);
+                        }
+                    }.start();
+                }
             }else{
-                Log.d("BROADCAST", String.valueOf(intent));
+                Log.d(TAG+"BROADCAST", String.valueOf(intent));
             }
 
         }
 
-        private static String getCurrentAppName(Intent intent) {
-            // Specify application name.
-            String currentApp1 = "";
+        private void newApp(Context context, Intent intent) {
+            String newApp = "";
             Bundle bundle = intent.getExtras();
             if (bundle != null) {
                 ContentValues appForground = (ContentValues) bundle.get(Applications.EXTRA_DATA);
-                currentApp1 = (String) appForground.get("application_name");
-
-                Log.d(">>>>>>>>>>>>>>>>>>>>>>>", currentApp1);
-
-                Log.d("APP_OPEN_CLOSE", currentApp1);
-
-//                //Share context to broadcast and send to database
-//                if (Plugin.pluginContext != null)
-//                    Plugin.pluginContext.onContext();
+                newApp = (String) appForground.get("application_name");
+                //if still the same ap do nothing
+                if(newApp.equals(currentApp) || newApp.equals("Android Keyboard (AOSP)")) return;
+                //TODO remove keyboard when done
+                long startTime = timestamp; //start time of prev app
+                timestamp = (long) appForground.get("timestamp");
+                currentDuration = timestamp-startTime;
+                Log.d("SURVEY>>>>>>>>>>>>>", String.valueOf(timestamp));
+                prevApp = currentApp;
+                currentApp = newApp;
+                Log.d("SURVEY>>>>>>>>>>>>>", currentApp+" | "+prevApp+" "+timestamp+" | "+triggerApp);
             }
-            return currentApp1;
+
+            if(hasAppClosed(prevApps, triggerApp)){
+                //update duration
+                Cursor appUnclosed = getContentResolver().query(Provider.Plugin_Survey_Data.CONTENT_URI, null, Provider.Plugin_Survey_Data.APPLICATION + " LIKE '%" + triggerApp + "%' AND "  + Provider.Plugin_Survey_Data.DURATION + "=0", null, null);
+                if (appUnclosed.moveToFirst()) {
+                    ContentValues rowData = new ContentValues();
+                    rowData.put(Provider.Plugin_Survey_Data.DURATION, currentDuration);
+                    do {
+                        getContentResolver().update(Provider.Plugin_Survey_Data.CONTENT_URI, rowData, Provider.Plugin_Survey_Data._ID + "=" + appUnclosed.getInt(appUnclosed.getColumnIndex(Provider.Plugin_Survey_Data._ID)), null);
+                        Log.d("SURVEY>>>>", "updated: "+appUnclosed.getInt(appUnclosed.getColumnIndex(Provider.Plugin_Survey_Data._ID)));
+                    }while(appUnclosed.moveToNext());
+                }
+            }
+            Log.d(TAG+"NUM", String.valueOf(numOfSurveys));
+            if (!surveyJustCompleted && numOfSurveys<MAX_NUM_OF_SURVEYS){
+                appTrigger(context, currentApp);
+            }
         }
 
-        private static boolean hasAppOpened(String currentApp, String app) {
-            return (app.equals(currentApp) && !prevApps.contains(currentApp));
+        private boolean hasAppOpened(String currentApp, String app) {
+            return (app.equals(currentApp));// && !prevApps.contains(currentApp));
         }
 
         /**
@@ -339,24 +400,26 @@ public class Plugin extends Aware_Plugin {
          * @param app   Application name.
          * @return has application closed
          */
-        private static boolean hasAppClosed(Queue<String> queue, String app) {
-            boolean appBefore = false;
-            boolean onePixelLauncher = false;
-            for (String s : queue) {
-                if (s.equals(app)) {
-                    appBefore = true;
-                    Log.d("CLOSE", "appBefore");
-                }
-                if(appBefore && onePixelLauncher && s.equals("Pixel Launcher")){
-                    //pixel launcher detected as muliple new opens (for count)
-                    Log.d("CLOSE", "multipl Pix");
-                    return false;
-                }else if (appBefore && s.equals("Pixel Launcher")) {
-                    onePixelLauncher = true;
-                    Log.d("CLOSE", "one Pix");
-                }
-            }
-            return appBefore && onePixelLauncher;
+        private boolean hasAppClosed(List<String> queue, String app) {
+//            boolean appBefore = false;
+//            boolean onePixelLauncher = false;
+//            for (String s : queue) {
+//                if (s.equals(app)) {
+//                    appBefore = true;
+//                    Log.d("CLOSE", "appBefore");
+//                }
+//                if(appBefore && !s.equals(app));
+//                if(appBefore && onePixelLauncher && s.equals("Pixel Launcher")){
+//                    //pixel launcher detected as muliple new opens (for count)
+//                    Log.d("CLOSE", "multipl Pix");
+//                    return false;
+//                }else if (appBefore && s.equals("Pixel Launcher")) {
+//                    onePixelLauncher = true;
+//                    Log.d("CLOSE", "one Pix");
+//                }
+//            }
+//            return appBefore && onePixelLauncher;
+           return (prevApp.equals(app));
         }
 
         /**
@@ -365,20 +428,20 @@ public class Plugin extends Aware_Plugin {
          * @param context    context
          * @param currentApp current app name
          */
-        private static void appTrigger(Context context, String currentApp) {
+        private void appTrigger(Context context, String currentApp) {
             // Detect application opening.
             for (Trigger trigger : triggerList) {
                 // Application Open/Close Trigger.
                 if (trigger instanceof TriggerAppOpenClose) {
                     for (String app : ((TriggerAppOpenClose) trigger).applications) {
-                        if (hasAppOpened(currentApp, app) && ((TriggerAppOpenClose) trigger).open) {
-                            Log.d("APP_OPEN_CLOSE", "Application opened. ESM delivered.");
+                        if (hasAppOpened(currentApp, app) && ((TriggerAppOpenClose) trigger).open && timeBetweenSurveysElapsed(app)) {
+                            Log.d(TAG + "APP_OPEN_CLOSE", "Application opened. ESM delivered.");
                             //set esm trigger value
-                            trigger.setTrigger("App opend: "+currentApp);
-                            ESM.queueESM(context, trigger.esm);
+                            trigger.setTrigger("App opend: " + currentApp);
                             setSurveyValues(trigger, currentApp, "Opened");
                             numOfSurveys++;
-                            Log.d("NUM", "open increase: "+String.valueOf(numOfSurveys));
+                            ESM.queueESM(context, trigger.esm);
+                            Log.d(TAG + "NUM", "open increase: " + String.valueOf(numOfSurveys));
                             //((TriggerAppOpenClose) trigger).setPause(currentApp);
                         }
                     }
@@ -389,42 +452,41 @@ public class Plugin extends Aware_Plugin {
                     for (String app : ((TriggerAppDelay) trigger).applications) {
                         if (hasAppOpened(currentApp, app)) {
                             setTimer = true;
-                            setSurveyValues(trigger, currentApp, "Delay of "+((TriggerAppDelay) trigger).delay+" s");
+                            setSurveyValues(trigger, currentApp, "Delay of " + ((TriggerAppDelay) trigger).delay + " s");
                         }
                     }
                     if (setTimer) {
                         for (TimerInfo timerInfo : timerInfos) {
                             if (timerInfo.triggerAppDelay == trigger) {
-                                Log.d("APP_DELAY", "Timer Set.");
+                                Log.d(TAG + "APP_DELAY", "Timer Set.");
                                 timerInfo.setTimer();
                             }
                         }
                     }
                 }
             }
-
             // Update previous application queue.
             if (prevApps.size() >= PREVIOUS_APP_SIZE) {
-                prevApps.remove();
+                prevApps.remove(0);
                 prevApps.add(currentApp);
             } else {
                 prevApps.add(currentApp);
             }
-            Log.d("APP_OPEN_CLOSE", prevApps.toString());
+            Log.d(TAG+"APP_OPEN_CLOSE", prevApps.toString());
 
             // Detect application closing.
             for (Trigger trigger : triggerList) {
                 // Application Open/Close Trigger.
                 if (trigger instanceof TriggerAppOpenClose) {
                     for (String app : ((TriggerAppOpenClose) trigger).applications) {
-                        if (hasAppClosed(prevApps, app) && ((TriggerAppOpenClose) trigger).close) {
-                            Log.d("APP_OPEN_CLOSE", "Application closed. ESM delivered.");
+                        if (hasAppClosed(prevApps, app) && ((TriggerAppOpenClose) trigger).close && timeBetweenSurveysElapsed(app)) {
+                            Log.d(TAG+"APP_OPEN_CLOSE", "Application closed. ESM delivered.");
                             //set esm trigger value
                             trigger.setTrigger("App closed: "+app);
                             ESM.queueESM(context, trigger.esm);
                             numOfSurveys++;
-                            Log.d("Close NUM", "increase: "+String.valueOf(numOfSurveys));
-                            setSurveyValues(trigger, currentApp, "Closed");
+                            Log.d(TAG+"Close NUM", "increase: "+String.valueOf(numOfSurveys));
+                            setSurveyValues(trigger, app, "Closed");
                         }
                     }
                 }
@@ -447,28 +509,50 @@ public class Plugin extends Aware_Plugin {
             }
         }
 
-        private static void setSurveyValues(Trigger trigger, String currentApp, String triggerType) {
+        private void setSurveyValues(Trigger trigger, String currentApp, String triggerType) {
             currentESM = trigger.esm;
             triggerApp = currentApp;
             surveyTrigger = triggerType;
             questionIndex = 0;
+            triggerAppID = currentAppID;
+            if(triggerType=="Closed") {
+                duration = currentDuration;
+                surveyTimestamp = timestamp-duration;
+            }else{
+                duration = 0;
+                surveyTimestamp = timestamp;
+            }
+                //TODO make constant
         }
 
-        private static String setQusetion() {
+        private String setQusetion() {
             try {
                 JSONArray esm = new JSONArray(currentESM);
                 String titel = esm.getJSONObject(questionIndex).getJSONObject("esm").getString("esm_title");
                 String instruction = esm.getJSONObject(questionIndex).getJSONObject("esm").getString("esm_instructions");
-                Log.d("QUESTION",titel + ", "+ instruction+" at "+questionIndex);
+                Log.d(TAG+"QUESTION",titel + ", "+ instruction+" at "+questionIndex);
                 return titel + ", "+ instruction;
             } catch (JSONException e) {
                 //e.printStackTrace();
-                Log.d("QUESTION","ERROR at "+questionIndex);
+                Log.d(TAG+"QUESTION","ERROR at "+questionIndex);
                 return "";
             }
         }
     }
 
+    private boolean timeBetweenSurveysElapsed(String app) {
+        int index = getIndex(app, timeBetweenApps);
+        return ((index>=0)? !appDelays[index]:true);
+    }
+
+    private int getIndex(String app, List<ConfigFile.Tuple> timeBetweenApps) {
+        int i = 0;
+        for(ConfigFile.Tuple tuple : timeBetweenApps){
+            if(tuple.getString().equals(app))return i;
+            i++;
+        }
+        return -1;
+    }
     /**
      * Delay timer for application delay trigger.
      */
@@ -482,16 +566,15 @@ public class Plugin extends Aware_Plugin {
                     Thread.sleep(2000);
                     for (TimerInfo timerInfo : timerInfos) {
                         // Log.d("APP_OPEN_CLOSE", "activation status:" + Boolean.toString(timerInfo.set));
-                        if (timerInfo.set && System.currentTimeMillis() > timerInfo.activation) {
-                            Log.d("APP_DELAY", "Application duration elapsed. ESM delivered.");
+                        if (timerInfo.set && System.currentTimeMillis() > timerInfo.activation && timeBetweenSurveysElapsed(triggerApp)) {
+                            Log.d(TAG+"APP_DELAY", "Application duration elapsed. ESM delivered.");
                             timerInfo.disableTimer();
                             //set esm trigger value
-                            //!!!! TODO triggerApp might not work here
                             timerInfo.triggerAppDelay.setTrigger(triggerApp+ " open for " +
                                     timerInfo.triggerAppDelay.delay + " seconds");
                             ESM.queueESM(getApplicationContext(), timerInfo.triggerAppDelay.esm);
                             numOfSurveys++;
-                            Log.d("NUM", "Delay increase: "+String.valueOf(numOfSurveys));
+                            Log.d(TAG+"NUM", "Delay increase: "+String.valueOf(numOfSurveys));
                         }
                     }
                 } catch (Exception e) {
