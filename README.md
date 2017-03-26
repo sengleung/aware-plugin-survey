@@ -147,6 +147,10 @@ Duration=300,Clock
 ```
 * `Durations`
 	Any specific minimum time has to start with Durations . Followed by an = the time between surveys in seconds, the application name.
+	
+### Maximum number of surveys per day
+
+`MAX_NUM_OF_SURVEYS` can be set in **Plugin.java** at **line 59**.
 
 
 ## Questionnaires
