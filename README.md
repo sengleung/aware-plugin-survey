@@ -31,6 +31,15 @@ The following instructions are intended for the end-user/surveyee.
 
 <img src="https://github.com/sengleung/aware-plugin-survey/blob/master/assets/aware-plugin-survey-demo.gif" width="270">
 
+Upload plugin to Aware Dashboard
+================================
+
+Follow the instructions given [here](http://www.awareframework.com/adding-a-new-plugin-to-the-dashboard/)
+The apk can be found in: ```YOUR_ANDROID_STUDIO_PROJECT_FOLDER\com.aware.plugin.survey\build\outputs\apk```
+
+Create a `SETTING`, type boolean `STATUS_YOUR_PLUGIN` to be able to enable the plugin in a study.
+Once the Plugin is created it can be added to studies using their API key.  
+
 Configuration
 =============
 
@@ -123,6 +132,22 @@ Questionnaire is triggered after an application is continuously used for a certa
 * `Delay`
 
   The duration in seconds for which the application is used continuously to trigger a questionnaire.
+  
+  
+### Minimum time between surveys
+
+All surveys requiere a minimum time between them (at least 10 seconds). This value can be changed in the **Plugin.java** file at **line 60**. The valiable `TIME_BETWEEN_SURVEYS` sets the time before any new survey can be triggered in seconds.
+
+In the **esm.ini** file a miminum time between surveys can be set for specific applications.
+
+```
+[MIMIMUM_DURATION_BETWEEN_SURVEYS]
+Duration=60,Chrome
+Duration=300,Clock
+```
+* `Durations`
+	Any specific minimum time has to start with Durations . Followed by an = the time between surveys in seconds, the application name.
+
 
 ## Questionnaires
 
