@@ -219,7 +219,7 @@ An example **esm1.ini** file is provided below:
 		"esm_trigger":"AWARE Tester"
 	}}
 	
-###Scale
+### Scale
 
 	{"esm": {
 		"esm_type":6,
