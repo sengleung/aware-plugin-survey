@@ -24,7 +24,7 @@ public class Provider extends ContentProvider {
 
     public static String AUTHORITY = "com.aware.plugin.survey.provider.survey"; //change to package.provider.your_plugin_name
 
-    public static final int DATABASE_VERSION = 14; //increase this if you make changes to the database structure, i.e., rename columns, etc.
+    public static final int DATABASE_VERSION = 1; //increase this if you make changes to the database structure, i.e., rename columns, etc.
     public static final String DATABASE_NAME = "plugin_survey1.db"; //the database filename, use plugin_xxx for plugins.
 
     //Add here your database table names, as many as you need
@@ -66,7 +66,6 @@ public class Provider extends ContentProvider {
         public static final String PREV_APPLICATION = "previous"; //TODO previous_application
         public static final String DURATION = "duration";
         public static final String APP_TABLE_ID = "app_table_id";
-
     }
 
     //Define each database table fields
@@ -241,8 +240,6 @@ public class Provider extends ContentProvider {
 
     @Override
     public int update(Uri uri, ContentValues values, String selection, String[] selectionArgs) {
-
-
 
         initialiseDatabase();
 
