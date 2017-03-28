@@ -159,4 +159,53 @@ public class ConfigFile {
         }
         return triggers;
     }
+
+    /**
+     * Parse minimum duration of applications
+     */
+    public List<Tuple> getDurations(){
+        List<Tuple> list = new ArrayList<Tuple>();
+
+        int id = plugin.getResources().getIdentifier("esm", "raw", plugin.getPackageName());
+        InputStream inputStream = plugin.getResources().openRawResource(id);
+
+        BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+        try{
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if(line.startsWith("Duration", 0)){
+                    String[] lineList = line.split("=");
+                    String[] tupleString = lineList[1].split(",");
+                    list.add(new Tuple(tupleString[1], Integer.parseInt(tupleString[0])));
+                }
+            }
+        } catch (IOException ex) {
+            throw new RuntimeException("Error in reading JSON file: " + ex);
+        } finally {
+            try {
+                inputStream.close();
+            } catch (IOException e) {
+                throw new RuntimeException("Error while closing input stream: " + e);
+            }
+        }
+        return list;
+    }
+
+    public class Tuple{
+        private String string;
+        private int time;
+        public Tuple(String app, int duration){
+            string = app;
+            time = duration;
+        }
+        public String getString(){
+            return this.string;
+        }
+        public int getInt(){
+            return this.time;
+        }
+
+    }
+
+
 }
