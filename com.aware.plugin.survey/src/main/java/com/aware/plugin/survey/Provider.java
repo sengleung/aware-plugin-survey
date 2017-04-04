@@ -49,7 +49,7 @@ public class Provider extends ContentProvider {
 
     /**
      * Create one of these per database table
-     * In this example, we are adding example columns
+     * Class for Plugin_Survey table
      */
     public static final class Plugin_Survey_Data implements AWAREColumns {
         public static final Uri CONTENT_URI = Uri.parse("content://" + AUTHORITY + "/" + DB_TBL_TEMPLATE);
