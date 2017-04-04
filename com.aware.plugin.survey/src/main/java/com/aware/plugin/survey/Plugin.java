@@ -199,7 +199,7 @@ public class Plugin extends Aware_Plugin {
         boolean appTriggered = false;
         boolean appDelayTrigger = false;
         for (Trigger trigger : triggerList) {
-           // Aware.setSetting(getApplicationContext(), Aware_Preferences.STATUS_ESM, true);
+            Aware.setSetting(getApplicationContext(), Aware_Preferences.STATUS_ESM, true);
             if (trigger instanceof TriggerTime) {
                 ((TriggerTime) trigger).setESM();
             }
@@ -313,20 +313,20 @@ public class Plugin extends Aware_Plugin {
          */
         @Override
         public void onReceive(Context context, Intent intent) {
-            
+
             if (intent.getAction().equals(Applications.ACTION_AWARE_APPLICATIONS_FOREGROUND)) {
                 Log.d("SURVEY>>>>>>>>>", "NEW APP");
                 newApp(context, intent);
 
             }else if(intent.getAction().equals(NEW_DAY)){
-                
+
                 //RESET numOFSurveys on reception of NEW_DAY broadcast
                 Log.d(TAG+"NEW DAY", String.valueOf(numOfSurveys));
                 numOfSurveys = 0;
                 Log.d(TAG+"NEW DAY", String.valueOf(numOfSurveys));
 
             }else if(intent.getAction().equals(ESM.ACTION_AWARE_ESM_ANSWERED)){
-                
+
                 //set question and anser to save
                 question = setQusetion();
                 answer = intent.getStringExtra(ESM.EXTRA_ANSWER);
@@ -337,7 +337,7 @@ public class Plugin extends Aware_Plugin {
                     Plugin.pluginContext.onContext();
 
             }else if(intent.getAction().equals(ESM.ACTION_AWARE_ESM_DISMISSED)){
-                
+
                 Log.d(TAG+"ESM ", "Dismissed");
                 question = setQusetion();
                 answer = "dismissed";
@@ -351,7 +351,7 @@ public class Plugin extends Aware_Plugin {
                 }
 
             }else if(intent.getAction().equals(ESM.ACTION_AWARE_ESM_QUEUE_COMPLETE)){
-                
+
                 Log.d(TAG+"ESM ", "queue complete");
                 //Disable  surveys for TIME_BETWEEN_SURVEY seconds after one has completed
                 surveyJustCompleted = true;
@@ -364,7 +364,7 @@ public class Plugin extends Aware_Plugin {
                         Log.d(TAG+"PAUSE", "Surveys can be triggered");
                     }
                 }.start();
-                
+
                 //If triggerApp has minimum duration, disable surveys for triggerApp for its minimum Duration
                 final int index = getIndex(triggerApp, timeBetweenApps);
                 if(index>=0){
