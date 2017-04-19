@@ -76,8 +76,8 @@ public class Plugin extends Aware_Plugin {
      * Number of apps stored in prev app array
      * Number of prev apps synced to server
      */
-    private static final int PREVIOUS_APP_SIZE = 6;
-    private static final int NUM_OF_PREV_APPS = 3;
+    private static final int PREVIOUS_APP_SIZE = 10;
+    private static final int NUM_OF_PREV_APPS = 4;
 
     private static List<Trigger> triggerList;
     private static List<String> prevApps;
@@ -139,10 +139,10 @@ public class Plugin extends Aware_Plugin {
                     int index = prevApps.indexOf(triggerApp);
                     String previousApp = (index > 0) ? prevApps.get(index - 1) : "";
                     for(int i = 2; (i-2)< NUM_OF_PREV_APPS  &&(index-i)>=0; i++){
-                        previousApp += ", "+prevApps.get(index-i);
+                        previousApp = prevApps.get(index-i)+", "+previousApp;
                     }
                     rowData.put(Provider.Plugin_Survey_Data.PREV_APPLICATION, previousApp);
-                    rowData.put(Provider.Plugin_Survey_Data.APP_TABLE_ID, surveyTimestamp);
+                    rowData.put(Provider.Plugin_Survey_Data.APP_TABLE_TIMESTAMP, surveyTimestamp);
 
                     Log.d(TAG, "Sending data " + rowData.toString());
                     getContentResolver().insert(Provider.Plugin_Survey_Data.CONTENT_URI, rowData);
@@ -239,8 +239,8 @@ public class Plugin extends Aware_Plugin {
         setNewDayTimer();
 
         //join study !REQUIERED to sync data to server TESTING ONLY
-//        Aware.joinStudy(this,
-//                "https://api.awareframework.com/index.php/webservice/index/1118/s7VgPquEj8aM");
+        Aware.joinStudy(this,
+                "https://api.awareframework.com/index.php/webservice/index/1118/s7VgPquEj8aM");
     }
 
     /**
@@ -250,6 +250,10 @@ public class Plugin extends Aware_Plugin {
     private void setNewDayTimer() {
         Context context = getApplicationContext();
         PendingIntent pi = PendingIntent.getBroadcast(context, 0, new Intent(NEW_DAY), PendingIntent.FLAG_UPDATE_CURRENT);
+        Intent t = new Intent(NEW_DAY);
+       // t.pu
+        PendingIntent pi2 = PendingIntent.getBroadcast(context, 0, new Intent(NEW_DAY), PendingIntent.FLAG_UPDATE_CURRENT);
+
         Calendar calendar = Calendar.getInstance();
         calendar.setTimeInMillis(System.currentTimeMillis());
         calendar.set(Calendar.SECOND, 0);
@@ -272,7 +276,6 @@ public class Plugin extends Aware_Plugin {
             //Initialize our plugin's settings
             Aware.setSetting(this, Settings.STATUS_SURVEY_PLUGIN, true);
             //Initialise AWARE instance in plugin
-            Aware.startPlugin(this, "com.aware.plugin.survey");
             Aware.startAWARE(this);
         }
         return START_STICKY;

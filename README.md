@@ -36,6 +36,7 @@ Upload plugin to Aware Dashboard
 
 Follow the instructions given [here](http://www.awareframework.com/adding-a-new-plugin-to-the-dashboard/)
 The apk can be found in: ```YOUR_ANDROID_STUDIO_PROJECT_FOLDER\com.aware.plugin.survey\build\outputs\apk```
+Or on the apk folder in the repository.
 
 Create a `SETTING`, type boolean `STATUS_YOUR_PLUGIN` to be able to enable the plugin in a study.
 Once the Plugin is created it can be added to studies using their API key.  
