@@ -25,10 +25,10 @@ public class Provider extends ContentProvider {
     public static String AUTHORITY = "com.aware.plugin.survey.provider.survey"; //change to package.provider.your_plugin_name
 
     public static final int DATABASE_VERSION = 1; //increase this if you make changes to the database structure, i.e., rename columns, etc.
-    public static final String DATABASE_NAME = "plugin_survey1.db"; //the database filename, use plugin_xxx for plugins.
+    public static final String DATABASE_NAME = "plugin_survey.db"; //the database filename, use plugin_xxx for plugins.
 
     //Add here your database table names, as many as you need
-    public static final String DB_TBL_TEMPLATE = "plugin_survey1";
+    public static final String DB_TBL_TEMPLATE = "plugin_survey";
 
 
     //For each table, add two indexes: DIR and ITEM. The index needs to always increment. Next one is 3, and so on.
@@ -65,7 +65,7 @@ public class Provider extends ContentProvider {
         public static final String APPLICATION = "application";
         public static final String PREV_APPLICATION = "previous"; //TODO previous_application
         public static final String DURATION = "duration";
-        public static final String APP_TABLE_ID = "app_table_id";
+        public static final String APP_TABLE_TIMESTAMP = "double_app_table_timestamp";
     }
 
     //Define each database table fields
@@ -81,7 +81,7 @@ public class Provider extends ContentProvider {
                     Plugin_Survey_Data.APPLICATION + " text default '',"+
                     Plugin_Survey_Data.DURATION + " real default 0,"+
                     Plugin_Survey_Data.PREV_APPLICATION + " text default ''," +
-                    Plugin_Survey_Data.APP_TABLE_ID + " real default 0";
+                    Plugin_Survey_Data.APP_TABLE_TIMESTAMP + " real default 0";
 
 
     /**
@@ -130,7 +130,7 @@ public class Provider extends ContentProvider {
         tableOneHash.put(Plugin_Survey_Data.APPLICATION, Plugin_Survey_Data.APPLICATION);
         tableOneHash.put(Plugin_Survey_Data.DURATION, Plugin_Survey_Data.DURATION);
         tableOneHash.put(Plugin_Survey_Data.PREV_APPLICATION, Plugin_Survey_Data.PREV_APPLICATION);
-        tableOneHash.put(Plugin_Survey_Data.APP_TABLE_ID, Plugin_Survey_Data.APP_TABLE_ID);
+        tableOneHash.put(Plugin_Survey_Data.APP_TABLE_TIMESTAMP, Plugin_Survey_Data.APP_TABLE_TIMESTAMP);
         return true;
     }
 

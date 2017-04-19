@@ -1,1 +1,1 @@
-include ':com.aware.plugin.survey', ':com.aware.plugin.survey.lib'
+include ':com.aware.plugin.survey'//, ':com.aware.plugin.survey.lib'
